@@ -615,6 +615,12 @@
         socket.on('gameStateChanged', (newGameState) => {
             // Reconstruct card objects
             game = deserializeGameState(newGameState);
+
+            // Check if it's my turn to select face-up cards
+            if (game.setupPhase === 'faceup' && game.setupPlayerIdx === myPlayerIndex) {
+                showFaceUpSelection();
+            }
+
             updateDisplay();
         });
 

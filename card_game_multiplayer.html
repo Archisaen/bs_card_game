@@ -591,6 +591,12 @@
                 font-size: 20px;
                 padding: 20px 30px;
             }
+
+            #winner-video {
+                width: 90vw;
+                max-width: 400px;
+                height: 225px;
+            }
         }
     </style>
 </head>
@@ -636,6 +642,9 @@
             <div id="winner-message">
                 <h1>🎉 WINNER! 🎉</h1>
                 <p id="winner-name"></p>
+                <iframe id="winner-video" width="560" height="315" style="margin-top: 20px; border-radius: 10px;"
+                    src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
             </div>
         </div>
 
@@ -1450,6 +1459,10 @@
             // Show overlay
             document.getElementById('winner-name').textContent = winnerName;
             document.getElementById('winner-overlay').style.display = 'flex';
+
+            // Load and autoplay the YouTube video
+            const videoFrame = document.getElementById('winner-video');
+            videoFrame.src = 'https://www.youtube.com/embed/q_gQLY6_gFI?autoplay=1';
 
             // Create confetti
             const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f7b731', '#5f27cd'];

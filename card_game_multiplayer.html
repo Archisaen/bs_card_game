@@ -733,6 +733,12 @@
             <div id="initial-choice">
                 <input type="text" id="player-name" placeholder="Enter your name" maxlength="20">
                 <br>
+                <div style="margin: 15px 0;">
+                    <label style="font-size: 16px; cursor: pointer;">
+                        <input type="checkbox" id="allow-lying" style="margin-right: 8px; cursor: pointer;">
+                        Allow Lying
+                    </label>
+                </div>
                 <button onclick="createRoom()">Create New Game</button>
                 <button onclick="showJoinRoom()">Join Game</button>
             </div>
@@ -799,6 +805,7 @@
             <div id="controls">
                 <button id="play-btn" onclick="playCards()" disabled>Play Selected Cards</button>
                 <button id="pickup-btn" onclick="pickupPile()" disabled>Pick Up Pile</button>
+                <button id="lie-btn" onclick="callLie()" disabled style="background: #ff6b6b; display: none;">🤥 Call Lie!</button>
             </div>
         </div>
     </div>
@@ -838,7 +845,11 @@
             setupPhase: 'init',
             setupPlayerIdx: 0,
             waitingForTarget: false,
-            mirroredRank: null
+            mirroredRank: null,
+            allowLying: false,
+            lastPlayedCards: [],
+            lastPlayerIdx: -1,
+            canCallLie: false
         };
 
         // Card class
@@ -890,6 +901,8 @@
                 alert('Please enter your name');
                 return;
             }
+            const allowLying = document.getElementById('allow-lying').checked;
+            game.allowLying = allowLying;
             socket.emit('createRoom', playerName);
         }
 
@@ -1003,13 +1016,11 @@
         }
 
         function initializeAndDealCards() {
-            // Initialize deck with 2 standard decks
+            // Initialize deck with 1 standard deck
             game.deck = [];
-            for (let deckNum = 0; deckNum < 2; deckNum++) {
-                for (let suit of SUITS) {
-                    for (let rank = 2; rank <= 14; rank++) {
-                        game.deck.push(new Card(rank, suit));
-                    }
+            for (let suit of SUITS) {
+                for (let rank = 2; rank <= 14; rank++) {
+                    game.deck.push(new Card(rank, suit));
                 }
             }
             shuffleDeck();
@@ -1310,6 +1321,7 @@
         function updateControls() {
             const playBtn = document.getElementById('play-btn');
             const pickupBtn = document.getElementById('pickup-btn');
+            const lieBtn = document.getElementById('lie-btn');
 
             const canPlay = game.selectedCards.length > 0 &&
                           game.currentPlayerIdx === myPlayerIndex &&
@@ -1317,6 +1329,15 @@
 
             playBtn.disabled = !canPlay;
             pickupBtn.disabled = game.currentPlayerIdx !== myPlayerIndex || game.waitingForTarget || game.pile.length === 0;
+
+            // Show/hide lie button
+            if (game.allowLying && game.canCallLie && game.lastPlayerIdx !== myPlayerIndex && game.lastPlayerIdx >= 0) {
+                lieBtn.style.display = 'block';
+                lieBtn.disabled = false;
+            } else {
+                lieBtn.style.display = 'none';
+                lieBtn.disabled = true;
+            }
         }
 
         function canPlayCard(card, isDefendingAce = false) {
@@ -1407,6 +1428,20 @@
 
             const playedRank = cards[0].rank;
             const numCards = cards.length;
+
+            // Track last played cards for lying mechanic
+            if (game.allowLying) {
+                // Clear previous lie opportunity when new cards are played
+                game.canCallLie = false;
+                game.lastPlayedCards = [...cards];
+                game.lastPlayerIdx = myPlayerIndex;
+                // Enable lie calling after this play completes
+                setTimeout(() => {
+                    game.canCallLie = true;
+                    broadcastGameState();
+                    updateDisplay();
+                }, 100);
+            }
 
             showMessage(`${player.name} plays ${cards.map(c => c.toString()).join(', ')}`);
 
@@ -1533,6 +1568,9 @@
         }
 
         function nextTurn() {
+            // Clear lie calling opportunity when turn advances
+            game.canCallLie = false;
+
             // Handle skip turns (from 8s)
             if (game.skipsRemaining > 0 && game.aceAttackTarget === null) {
                 game.skipsRemaining--;
@@ -1585,6 +1623,48 @@
             game.aceAttackTarget = null;
             game.mirroredRank = null;
             game.selectedCards = [];
+            game.canCallLie = false;
+            nextTurn();
+        }
+
+        function callLie() {
+            if (!game.canCallLie) return;
+            if (game.lastPlayerIdx === myPlayerIndex) return;
+            if (game.lastPlayerIdx < 0) return;
+
+            const liar = game.players[game.lastPlayerIdx];
+            const lastCards = game.pile.slice(-game.lastPlayedCards.length);
+
+            // Check if the played cards match what was actually in the pile
+            let wasLying = false;
+            for (let i = 0; i < game.lastPlayedCards.length; i++) {
+                const playedCard = game.lastPlayedCards[i];
+                const actualCard = lastCards[i];
+                if (playedCard.rank !== actualCard.rank || playedCard.suit !== actualCard.suit) {
+                    wasLying = true;
+                    break;
+                }
+            }
+
+            if (wasLying) {
+                showMessage(`🤥 ${liar.name} was lying! They pick up the pile!`);
+                liar.hand.push(...game.pile);
+                game.pile = [];
+                game.mirroredRank = null;
+                game.currentPlayerIdx = game.lastPlayerIdx;
+            } else {
+                showMessage(`❌ ${game.players[myPlayerIndex].name} called wrong! You pick up the pile!`);
+                game.players[myPlayerIndex].hand.push(...game.pile);
+                game.pile = [];
+                game.mirroredRank = null;
+            }
+
+            game.canCallLie = false;
+            game.lastPlayedCards = [];
+            game.lastPlayerIdx = -1;
+
+            broadcastGameState();
+            updateDisplay();
             nextTurn();
         }
 

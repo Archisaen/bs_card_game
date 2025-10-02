@@ -414,6 +414,65 @@
             color: #333;
             margin-top: 20px;
         }
+
+        /* Winner celebration */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #ffd700;
+            position: absolute;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        #winner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #winner-message {
+            text-align: center;
+            animation: bounceIn 0.6s;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        #winner-message h1 {
+            font-size: 72px;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            margin-bottom: 20px;
+        }
+
+        #winner-message p {
+            font-size: 32px;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -451,6 +510,14 @@
             <p>Select 3 cards to place face-up (click to select/deselect)</p>
             <div class="player-cards" id="faceup-cards"></div>
             <button onclick="confirmFaceUp()">Confirm Selection</button>
+        </div>
+
+        <!-- Winner Overlay -->
+        <div id="winner-overlay">
+            <div id="winner-message">
+                <h1>🎉 WINNER! 🎉</h1>
+                <p id="winner-name"></p>
+            </div>
         </div>
 
         <!-- Game Table -->
@@ -996,14 +1063,19 @@
                 return [Rank.TWO, Rank.TEN, Rank.THREE, Rank.ACE].includes(card.rank);
             }
 
-            if ([Rank.TEN, Rank.TWO, Rank.THREE, Rank.ACE].includes(card.rank)) {
-                return true;
-            }
-
             const topRank = game.pile[game.pile.length - 1].rank;
 
+            // 7 rule: must play 7 or lower (2, 3, and Ace are still special)
             if (topRank === Rank.SEVEN) {
+                if (card.rank === Rank.TWO || card.rank === Rank.THREE || card.rank === Rank.ACE) {
+                    return true;
+                }
                 return card.rank <= Rank.SEVEN;
+            }
+
+            // Special cards that can always be played (except on 7)
+            if ([Rank.TEN, Rank.TWO, Rank.THREE, Rank.ACE].includes(card.rank)) {
+                return true;
             }
 
             return card.rank >= topRank;
@@ -1094,31 +1166,41 @@
                 game.aceAttackTarget = null;
             }
 
-            // Handle 3 (mirrors card below)
+            // Handle 3 (mirrors last non-3 card)
             if (playedRank === Rank.THREE && game.pile.length >= 2) {
-                const cardBelow = game.pile[game.pile.length - 2];
-                showMessage(`${player.name} mirrors ${cardBelow.toString()} with 3!`);
+                // Find the last non-3 card in the pile
+                let cardToMirror = null;
+                for (let i = game.pile.length - 2; i >= 0; i--) {
+                    if (game.pile[i].rank !== Rank.THREE) {
+                        cardToMirror = game.pile[i];
+                        break;
+                    }
+                }
 
-                // Apply the effect of the card below
-                if (cardBelow.rank === Rank.ACE) {
-                    game.waitingForTarget = true;
-                    showMessage(`${player.name} mirrors Ace! Choose a player to attack!`);
-                    broadcastGameState();
-                    updateDisplay();
-                    return;
-                } else if (cardBelow.rank === Rank.EIGHT) {
-                    // Mirror 8's skip effect
-                    game.skipsRemaining += numCards;
-                    showMessage(`⏭️ 3 mirrors 8! ${numCards} more turn(s) skipped!`);
-                } else if (cardBelow.rank === Rank.TEN) {
-                    // Mirror 10's burn effect
-                    showMessage(`🔥 3 mirrors 10! ${player.name} burns the pile and plays again!`);
-                    game.pile = [];
-                    game.aceAttackTarget = null;
-                    drawCards(player);
-                    broadcastGameState();
-                    updateDisplay();
-                    return;
+                if (cardToMirror) {
+                    showMessage(`${player.name} mirrors ${cardToMirror.toString()} with 3!`);
+
+                    // Apply the effect of the mirrored card
+                    if (cardToMirror.rank === Rank.ACE) {
+                        game.waitingForTarget = true;
+                        showMessage(`${player.name} mirrors Ace! Choose a player to attack!`);
+                        broadcastGameState();
+                        updateDisplay();
+                        return;
+                    } else if (cardToMirror.rank === Rank.EIGHT) {
+                        // Mirror 8's skip effect
+                        game.skipsRemaining += numCards;
+                        showMessage(`⏭️ 3 mirrors 8! ${numCards} more turn(s) skipped!`);
+                    } else if (cardToMirror.rank === Rank.TEN) {
+                        // Mirror 10's burn effect
+                        showMessage(`🔥 3 mirrors 10! ${player.name} burns the pile and plays again!`);
+                        game.pile = [];
+                        game.aceAttackTarget = null;
+                        drawCards(player);
+                        broadcastGameState();
+                        updateDisplay();
+                        return;
+                    }
                 }
             }
 
@@ -1147,6 +1229,7 @@
 
             if (!player.hasCards()) {
                 showMessage(`🎉 ${player.name} wins!`);
+                showWinnerCelebration(player.name);
                 broadcastGameState();
                 updateDisplay();
                 return;
@@ -1174,19 +1257,26 @@
         }
 
         function nextTurn() {
+            // Handle skip turns (from 8s)
             if (game.skipsRemaining > 0 && game.aceAttackTarget === null) {
                 game.skipsRemaining--;
                 game.currentPlayerIdx = (game.currentPlayerIdx + 1) % game.players.length;
                 showMessage(`${game.players[game.currentPlayerIdx].name}'s turn skipped!`);
-                if (game.skipsRemaining > 0 || game.aceAttackTarget !== null) {
+
+                if (game.skipsRemaining > 0) {
+                    // More skips remaining, continue skipping
                     broadcastGameState();
                     updateDisplay();
                     setTimeout(nextTurn, 1500);
                     return;
+                } else {
+                    // Done skipping, move to next player
+                    game.currentPlayerIdx = (game.currentPlayerIdx + 1) % game.players.length;
                 }
+            } else {
+                // Normal turn advance
+                game.currentPlayerIdx = (game.currentPlayerIdx + 1) % game.players.length;
             }
-
-            game.currentPlayerIdx = (game.currentPlayerIdx + 1) % game.players.length;
 
             game.players = game.players.filter(p => p.hasCards());
             if (game.players.length <= 1) {
@@ -1218,6 +1308,29 @@
         function showMessage(msg) {
             const messagesEl = document.getElementById('messages');
             messagesEl.innerHTML = `<span class="message-highlight">${msg}</span>`;
+        }
+
+        function showWinnerCelebration(winnerName) {
+            // Show overlay
+            document.getElementById('winner-name').textContent = winnerName;
+            document.getElementById('winner-overlay').style.display = 'flex';
+
+            // Create confetti
+            const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f7b731', '#5f27cd'];
+            for (let i = 0; i < 100; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.top = -10 + 'px';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                    confetti.style.animationDuration = Math.random() * 2 + 2 + 's';
+                    document.body.appendChild(confetti);
+
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 30);
+            }
         }
 
         // Add click handlers for player targeting

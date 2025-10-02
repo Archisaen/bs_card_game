@@ -329,11 +329,16 @@
         #player-5 { top: 50%; left: 5px; transform: translateY(-50%); max-width: 280px; }
 
         #controls {
-            position: absolute;
+            position: fixed;
             bottom: 20px;
             right: 20px;
             display: flex;
             gap: 10px;
+            z-index: 500;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         }
 
         button {
@@ -566,36 +571,40 @@
             #player-1 {
                 top: 10px;
                 left: 5px;
-                max-width: 45%;
+                max-width: 30%;
             }
             #player-2 {
                 top: 10px;
-                right: 5px;
-                max-width: 45%;
+                left: 50%;
+                transform: translateX(-50%);
+                max-width: 30%;
             }
             #player-3 {
-                bottom: 80px;
-                left: 5px;
-                max-width: 45%;
+                top: 10px;
+                right: 5px;
+                max-width: 30%;
             }
             #player-4 {
-                bottom: 80px;
-                right: 5px;
-                max-width: 45%;
+                top: 50%;
+                left: 5px;
+                transform: translateY(-50%);
+                max-width: 30%;
             }
             #player-5 {
-                top: 40%;
-                left: 5px;
-                max-width: 45%;
+                top: 50%;
+                right: 5px;
+                transform: translateY(-50%);
+                max-width: 30%;
             }
 
             #controls {
+                position: fixed;
                 bottom: 5px;
                 left: 50%;
                 transform: translateX(-50%);
                 right: auto;
                 gap: 10px;
-                z-index: 200;
+                z-index: 500;
             }
 
             button {
@@ -705,10 +714,12 @@
             }
 
             #controls {
+                position: fixed;
                 bottom: 5px;
                 left: 50%;
                 transform: translateX(-50%);
                 gap: 8px;
+                z-index: 500;
             }
         }
     </style>

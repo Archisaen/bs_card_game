@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        #game-container {
+            width: 95vw;
+            max-width: 1400px;
+            height: 95vh;
+            position: relative;
+        }
+
+        /* Game setup screen */
+        #setup-screen {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+        #setup-screen h1 {
+            font-size: 48px;
+            margin-bottom: 30px;
+            color: #ffd700;
+        }
+
+        #setup-screen label {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        #setup-screen input {
+            width: 200px;
+            padding: 10px;
+            font-size: 18px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        #setup-screen button {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: #ffd700;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #setup-screen button:hover {
+            transform: scale(1.05);
+        }
+
+        /* Game table */
+        #game-table {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* Center pile area */
+        #center-area {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        #deck-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #deck-visual {
+            position: relative;
+            width: 70px;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+
+        #deck-visual .card {
+            position: absolute;
+        }
+
+        #pile-container {
+            min-width: 150px;
+            min-height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 3px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+        }
+
+        #pile {
+            position: relative;
+            min-height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #pile .card {
+            position: absolute;
+        }
+
+        #pile .card:last-child {
+            z-index: 100;
+        }
+
+        #pile-info {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        #deck-info {
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        /* Card styling */
+        .card {
+            width: 70px;
+            height: 100px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            user-select: none;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .card.selected {
+            transform: translateY(-20px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.8);
+            border-color: #ffd700;
+        }
+
+        .card.red {
+            color: #d32f2f;
+        }
+
+        .card.black {
+            color: #333;
+        }
+
+        .card.face-down {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: transparent;
+        }
+
+        .card.face-down::after {
+            content: '🂠';
+            position: absolute;
+            font-size: 40px;
+            color: white;
+        }
+
+        /* Player areas */
+        .player-area {
+            position: absolute;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            min-width: 250px;
+        }
+
+        .player-area.current-turn {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .player-area.under-attack {
+            border-color: #ff4444;
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 68, 68, 0.8); }
+            50% { box-shadow: 0 0 30px rgba(255, 68, 68, 1); }
+        }
+
+        .player-area.skipped {
+            opacity: 0.5;
+        }
+
+        .player-area.targetable {
+            border-color: #ff6b6b;
+            cursor: pointer;
+        }
+
+        .player-area.targetable:hover {
+            border-color: #ff0000;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
+        }
+
+        .player-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+
+        .player-cards {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .card-section {
+            margin-bottom: 10px;
+        }
+
+        .card-section-label {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+
+        /* Stacked cards (face-down with face-up on top) */
+        .card-stack {
+            display: inline-block;
+            position: relative;
+            margin-right: 15px;
+        }
+
+        .card-stack .card.face-down {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-stack .card.face-up {
+            position: absolute;
+            top: -30px;
+            left: 0;
+            z-index: 2;
+        }
+
+        .card-stack-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            min-height: 130px;
+        }
+
+        /* Position players around the table */
+        #player-0 { bottom: 20px; left: 50%; transform: translateX(-50%); }
+        #player-1 { top: 20px; left: 20px; }
+        #player-2 { top: 20px; right: 20px; }
+        #player-3 { bottom: 20px; left: 20px; }
+        #player-4 { bottom: 20px; right: 20px; }
+
+        /* Make sure center area is on top */
+        #center-area {
+            z-index: 50;
+        }
+
+        /* Control buttons */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #play-btn {
+            background: #4caf50;
+            color: white;
+        }
+
+        #play-btn:hover:not(:disabled) {
+            background: #45a049;
+        }
+
+        #play-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #pickup-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        #pickup-btn:hover:not(:disabled) {
+            background: #da190b;
+        }
+
+        /* Game messages */
+        #messages {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            max-width: 600px;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .message-highlight {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        /* Face-up card selection during setup */
+        #setup-faceup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        #setup-faceup h2 {
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+
+        #setup-faceup .player-cards {
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        #setup-faceup button {
+            background: #ffd700;
+            color: #333;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Setup Screen -->
+        <div id="setup-screen">
+            <h1>🃏 Card Game</h1>
+            <label for="num-players">Number of Players (2-5):</label>
+            <input type="number" id="num-players" min="2" max="5" value="3">
+            <br>
+            <button onclick="startGame()">Start Game</button>
+        </div>
+
+        <!-- Face-up card selection -->
+        <div id="setup-faceup">
+            <h2 id="faceup-player-name"></h2>
+            <p>Select 3 cards to place face-up (click to select/deselect)</p>
+            <div class="player-cards" id="faceup-cards"></div>
+            <button onclick="confirmFaceUp()">Confirm Selection</button>
+        </div>
+
+        <!-- Game Table -->
+        <div id="game-table">
+            <!-- Messages -->
+            <div id="messages"></div>
+
+            <!-- Center pile -->
+            <div id="center-area">
+                <!-- Deck -->
+                <div id="deck-container">
+                    <div id="deck-visual"></div>
+                    <div id="deck-info">Deck: 52 cards</div>
+                </div>
+
+                <!-- Pile -->
+                <div id="pile-container">
+                    <div id="pile"></div>
+                    <div id="pile-info">Pile: 0 cards</div>
+                </div>
+            </div>
+
+            <!-- Player areas will be created dynamically -->
+
+            <!-- Controls -->
+            <div id="controls">
+                <button id="play-btn" onclick="playCards()" disabled>Play Selected Cards</button>
+                <button id="pickup-btn" onclick="pickupPile()" disabled>Pick Up Pile</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game constants
+        const Rank = {
+            TWO: 2, THREE: 3, FOUR: 4, FIVE: 5, SIX: 6, SEVEN: 7, EIGHT: 8,
+            NINE: 9, TEN: 10, JACK: 11, QUEEN: 12, KING: 13, ACE: 14
+        };
+
+        const RANK_NAMES = {
+            2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8',
+            9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K', 14: 'A'
+        };
+
+        const SUITS = ['♠', '♥', '♦', '♣'];
+
+        // Game state
+        let game = {
+            players: [],
+            deck: [],
+            pile: [],
+            currentPlayerIdx: 0,
+            skipsRemaining: 0,
+            aceAttackTarget: null,
+            selectedCards: [],
+            setupPhase: 'init',
+            setupPlayerIdx: 0,
+            waitingForTarget: false
+        };
+
+        // Card class
+        class Card {
+            constructor(rank, suit) {
+                this.rank = rank;
+                this.suit = suit;
+            }
+
+            toString() {
+                return RANK_NAMES[this.rank] + this.suit;
+            }
+
+            isRed() {
+                return this.suit === '♥' || this.suit === '♦';
+            }
+        }
+
+        // Player class
+        class Player {
+            constructor(name) {
+                this.name = name;
+                this.hand = [];
+                this.faceUp = [];
+                this.faceDown = [];
+            }
+
+            hasCards() {
+                return this.hand.length > 0 || this.faceUp.length > 0 || this.faceDown.length > 0;
+            }
+
+            getPlayableCards() {
+                if (this.hand.length > 0) return this.hand;
+                if (this.faceUp.length > 0) return this.faceUp;
+                if (this.faceDown.length > 0) return this.faceDown;
+                return [];
+            }
+
+            isPlayingBlind() {
+                return this.hand.length === 0 && this.faceUp.length === 0 && this.faceDown.length > 0;
+            }
+        }
+
+        // Initialize deck
+        function initializeDeck() {
+            game.deck = [];
+            for (let suit of SUITS) {
+                for (let rank = 2; rank <= 14; rank++) {
+                    game.deck.push(new Card(rank, suit));
+                }
+            }
+            shuffleDeck();
+        }
+
+        function shuffleDeck() {
+            for (let i = game.deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [game.deck[i], game.deck[j]] = [game.deck[j], game.deck[i]];
+            }
+        }
+
+        function drawCard() {
+            return game.deck.pop();
+        }
+
+        function drawCards(player) {
+            while (player.hand.length < 3 && game.deck.length > 0) {
+                player.hand.push(drawCard());
+            }
+        }
+
+        // Start game
+        function startGame() {
+            const numPlayers = parseInt(document.getElementById('num-players').value);
+            if (numPlayers < 2 || numPlayers > 5) {
+                alert('Please enter 2-5 players');
+                return;
+            }
+
+            // Initialize players
+            game.players = [];
+            for (let i = 0; i < numPlayers; i++) {
+                game.players.push(new Player(`Player ${i + 1}`));
+            }
+
+            // Initialize deck
+            initializeDeck();
+
+            // Deal cards
+            // 3 face-down to each player
+            for (let player of game.players) {
+                player.faceDown = [drawCard(), drawCard(), drawCard()];
+            }
+
+            // 6 cards to each player's hand initially (for selection)
+            for (let player of game.players) {
+                for (let i = 0; i < 6; i++) {
+                    player.hand.push(drawCard());
+                }
+            }
+            // Note: After selecting 3 face-up cards, players will have 3 cards in hand
+
+            // Hide setup screen
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-table').style.display = 'block';
+
+            // Create player areas
+            createPlayerAreas();
+
+            // Start face-up selection
+            game.setupPhase = 'faceup';
+            game.setupPlayerIdx = 0;
+            showFaceUpSelection();
+        }
+
+        // Create player areas on the table
+        function createPlayerAreas() {
+            const gameTable = document.getElementById('game-table');
+            for (let i = 0; i < game.players.length; i++) {
+                const playerArea = document.createElement('div');
+                playerArea.id = `player-${i}`;
+                playerArea.className = 'player-area';
+                gameTable.appendChild(playerArea);
+            }
+        }
+
+        // Show face-up card selection
+        function showFaceUpSelection() {
+            if (game.setupPlayerIdx >= game.players.length) {
+                // All players done, start game
+                game.setupPhase = 'done';
+                document.getElementById('setup-faceup').style.display = 'none';
+                updateDisplay();
+                showMessage(`Game started! ${game.players[game.currentPlayerIdx].name}'s turn`);
+                return;
+            }
+
+            const player = game.players[game.setupPlayerIdx];
+            document.getElementById('faceup-player-name').textContent = `${player.name} - Choose Face-Up Cards`;
+
+            const cardsContainer = document.getElementById('faceup-cards');
+            cardsContainer.innerHTML = '';
+
+            player.hand.forEach((card, idx) => {
+                const cardEl = createCardElement(card, () => {
+                    if (game.selectedCards.includes(idx)) {
+                        game.selectedCards = game.selectedCards.filter(i => i !== idx);
+                        cardEl.classList.remove('selected');
+                    } else {
+                        if (game.selectedCards.length < 3) {
+                            game.selectedCards.push(idx);
+                            cardEl.classList.add('selected');
+                        }
+                    }
+                });
+                cardsContainer.appendChild(cardEl);
+            });
+
+            game.selectedCards = [];
+            document.getElementById('setup-faceup').style.display = 'block';
+        }
+
+        function confirmFaceUp() {
+            if (game.selectedCards.length !== 3) {
+                alert('Please select exactly 3 cards');
+                return;
+            }
+
+            const player = game.players[game.setupPlayerIdx];
+
+            // Move selected cards to face-up
+            const selectedIndices = [...game.selectedCards].sort((a, b) => b - a);
+            for (let idx of selectedIndices) {
+                player.faceUp.push(player.hand[idx]);
+                player.hand.splice(idx, 1);
+            }
+
+            // Move to next player
+            game.setupPlayerIdx++;
+            showFaceUpSelection();
+        }
+
+        // Create card element
+        function createCardElement(card, onClick, faceDown = false) {
+            const cardEl = document.createElement('div');
+            cardEl.className = `card ${card.isRed() ? 'red' : 'black'}`;
+            if (faceDown) {
+                cardEl.className += ' face-down';
+            } else {
+                cardEl.textContent = card.toString();
+            }
+            if (onClick) {
+                cardEl.onclick = onClick;
+            }
+            return cardEl;
+        }
+
+        // Update display
+        function updateDisplay() {
+            if (game.setupPhase !== 'done') return;
+
+            // Update deck visual - show stacked face-down cards
+            const deckVisual = document.getElementById('deck-visual');
+            deckVisual.innerHTML = '';
+            if (game.deck.length > 0) {
+                // Show 3 stacked cards to represent the deck
+                for (let i = 0; i < 3; i++) {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'card face-down';
+                    cardEl.style.transform = `translate(${i * 2}px, ${i * 2}px)`;
+                    cardEl.style.zIndex = i;
+                    deckVisual.appendChild(cardEl);
+                }
+            }
+            document.getElementById('deck-info').textContent = `Deck: ${game.deck.length} cards`;
+
+            // Update pile - show stacked cards with slight offset
+            const pileEl = document.getElementById('pile');
+            pileEl.innerHTML = '';
+            if (game.pile.length > 0) {
+                // Show up to last 5 cards stacked
+                const cardsToShow = Math.min(5, game.pile.length);
+                const startIdx = game.pile.length - cardsToShow;
+
+                for (let i = startIdx; i < game.pile.length; i++) {
+                    const card = game.pile[i];
+                    const cardEl = createCardElement(card, null);
+                    const offset = (i - startIdx) * 3; // Slight offset for stacking effect
+                    cardEl.style.transform = `translate(${offset}px, ${offset}px)`;
+                    cardEl.style.zIndex = i;
+                    pileEl.appendChild(cardEl);
+                }
+            }
+            document.getElementById('pile-info').textContent = `Pile: ${game.pile.length} cards`;
+
+            // Update players
+            game.players.forEach((player, idx) => {
+                const playerArea = document.getElementById(`player-${idx}`);
+                playerArea.className = 'player-area';
+
+                if (idx === game.currentPlayerIdx) {
+                    playerArea.classList.add('current-turn');
+                }
+                if (game.aceAttackTarget === idx) {
+                    playerArea.classList.add('under-attack');
+                }
+                if (game.skipsRemaining > 0 && idx === (game.currentPlayerIdx + 1) % game.players.length) {
+                    playerArea.classList.add('skipped');
+                }
+                if (game.waitingForTarget && idx !== game.currentPlayerIdx) {
+                    playerArea.classList.add('targetable');
+                }
+
+                let html = `<div class="player-name">${player.name}</div>`;
+
+                // Stacked cards (face-down with face-up on top)
+                if (player.faceDown.length > 0 || player.faceUp.length > 0) {
+                    html += `<div class="card-section">
+                        <div class="card-section-label">Table Cards:</div>
+                        <div class="card-stack-container" id="player-${idx}-stacks"></div>
+                    </div>`;
+                }
+
+                // Hand cards (only show for current player)
+                if (idx === 0 || idx === game.currentPlayerIdx) {
+                    html += `<div class="card-section">
+                        <div class="card-section-label">Hand: ${player.hand.length}</div>
+                        <div class="player-cards" id="player-${idx}-hand"></div>
+                    </div>`;
+                } else {
+                    html += `<div class="card-section">
+                        <div class="card-section-label">Hand: ${player.hand.length} cards</div>
+                    </div>`;
+                }
+
+                playerArea.innerHTML = html;
+
+                // Add stacked cards (face-down with face-up on top)
+                const stacksContainer = document.getElementById(`player-${idx}-stacks`);
+                if (stacksContainer) {
+                    const maxStacks = Math.max(player.faceDown.length, player.faceUp.length);
+                    for (let i = 0; i < maxStacks; i++) {
+                        const stack = document.createElement('div');
+                        stack.className = 'card-stack';
+
+                        // Add face-down card
+                        if (i < player.faceDown.length) {
+                            const faceDownCard = createCardElement(player.faceDown[i],
+                                player.hand.length === 0 && player.faceUp.length === 0
+                                ? () => selectCard(idx, 'faceDown', i) : null,
+                                true);
+                            stack.appendChild(faceDownCard);
+                        }
+
+                        // Add face-up card on top
+                        if (i < player.faceUp.length) {
+                            const faceUpCard = createCardElement(player.faceUp[i],
+                                player.hand.length === 0
+                                ? () => selectCard(idx, 'faceUp', i) : null);
+                            faceUpCard.classList.add('face-up');
+                            stack.appendChild(faceUpCard);
+                        }
+
+                        stacksContainer.appendChild(stack);
+                    }
+                }
+
+                // Add hand cards
+                if (idx === 0 || idx === game.currentPlayerIdx) {
+                    const handContainer = document.getElementById(`player-${idx}-hand`);
+                    player.hand.forEach((card, cardIdx) => {
+                        const cardEl = createCardElement(card, () => selectCard(idx, 'hand', cardIdx));
+                        handContainer.appendChild(cardEl);
+                    });
+                }
+            });
+
+            updateSelectedCards();
+            updateControls();
+        }
+
+        function selectCard(playerIdx, location, cardIdx) {
+            if (playerIdx !== game.currentPlayerIdx) return;
+            if (game.waitingForTarget) return;
+
+            const player = game.players[playerIdx];
+            const playableCards = player.getPlayableCards();
+
+            // Check if this card is in the playable location
+            const isPlayable = (location === 'hand' && player.hand.length > 0) ||
+                             (location === 'faceUp' && player.hand.length === 0 && player.faceUp.length > 0) ||
+                             (location === 'faceDown' && player.hand.length === 0 && player.faceUp.length === 0);
+
+            if (!isPlayable) return;
+
+            const card = location === 'hand' ? player.hand[cardIdx] :
+                        location === 'faceUp' ? player.faceUp[cardIdx] :
+                        player.faceDown[cardIdx];
+
+            const cardKey = `${location}-${cardIdx}`;
+            const selectedIdx = game.selectedCards.findIndex(c => c.key === cardKey);
+
+            if (selectedIdx >= 0) {
+                game.selectedCards.splice(selectedIdx, 1);
+            } else {
+                // Check if same rank as already selected
+                if (game.selectedCards.length > 0) {
+                    const firstRank = game.selectedCards[0].card.rank;
+                    if (card.rank !== firstRank) {
+                        game.selectedCards = [];
+                    }
+                }
+                game.selectedCards.push({ card, location, idx: cardIdx, key: cardKey });
+            }
+
+            updateDisplay();
+        }
+
+        function updateSelectedCards() {
+            game.selectedCards.forEach(({ location, idx }) => {
+                const containers = location === 'hand' ? [`player-${game.currentPlayerIdx}-hand`] :
+                                 location === 'faceUp' ? [`player-${game.currentPlayerIdx}-faceup`] : [];
+                containers.forEach(containerId => {
+                    const container = document.getElementById(containerId);
+                    if (container && container.children[idx]) {
+                        container.children[idx].classList.add('selected');
+                    }
+                });
+            });
+        }
+
+        function updateControls() {
+            const playBtn = document.getElementById('play-btn');
+            const pickupBtn = document.getElementById('pickup-btn');
+
+            const canPlay = game.selectedCards.length > 0 &&
+                          game.currentPlayerIdx >= 0 &&
+                          !game.waitingForTarget;
+
+            playBtn.disabled = !canPlay;
+            pickupBtn.disabled = game.waitingForTarget || game.pile.length === 0;
+        }
+
+        // Check if card can be played
+        function canPlayCard(card, isDefendingAce = false) {
+            if (game.pile.length === 0) return true;
+
+            if (isDefendingAce) {
+                return [Rank.TWO, Rank.TEN, Rank.THREE, Rank.ACE].includes(card.rank);
+            }
+
+            if ([Rank.TEN, Rank.TWO, Rank.THREE, Rank.ACE].includes(card.rank)) {
+                return true;
+            }
+
+            const topRank = game.pile[game.pile.length - 1].rank;
+
+            if (topRank === Rank.SEVEN) {
+                return card.rank <= Rank.SEVEN;
+            }
+
+            return card.rank >= topRank;
+        }
+
+        // Play selected cards
+        function playCards() {
+            if (game.selectedCards.length === 0) return;
+            if (game.waitingForTarget) return;
+
+            const player = game.players[game.currentPlayerIdx];
+            const cards = game.selectedCards.map(c => c.card);
+            const isDefendingAce = game.aceAttackTarget === game.currentPlayerIdx;
+
+            // Validate all cards can be played
+            for (let card of cards) {
+                if (!canPlayCard(card, isDefendingAce)) {
+                    showMessage(`Cannot play ${card.toString()}!`, 'error');
+                    return;
+                }
+            }
+
+            // Remove cards from player
+            const sortedSelected = [...game.selectedCards].sort((a, b) => b.idx - a.idx);
+            for (let { location, idx } of sortedSelected) {
+                if (location === 'hand') {
+                    game.pile.push(player.hand.splice(idx, 1)[0]);
+                } else if (location === 'faceUp') {
+                    game.pile.push(player.faceUp.splice(idx, 1)[0]);
+                } else if (location === 'faceDown') {
+                    game.pile.push(player.faceDown.splice(idx, 1)[0]);
+                }
+            }
+
+            game.selectedCards = [];
+
+            const playedRank = cards[0].rank;
+            const numCards = cards.length;
+
+            showMessage(`${player.name} plays ${cards.map(c => c.toString()).join(', ')}`);
+
+            // Handle Ace attack
+            if (playedRank === Rank.ACE && !isDefendingAce) {
+                game.waitingForTarget = true;
+                showMessage('Choose a player to attack!');
+                updateDisplay();
+                return;
+            }
+
+            // Handle Ace counter
+            if (playedRank === Rank.ACE && isDefendingAce) {
+                game.waitingForTarget = true;
+                showMessage(`${player.name} counters with Ace! Choose a player to attack!`);
+                updateDisplay();
+                return;
+            }
+
+            // Handle special cards
+            if (playedRank === Rank.TWO && isDefendingAce) {
+                showMessage(`${player.name} blocks with 2!`);
+                game.aceAttackTarget = null;
+            }
+
+            if (playedRank === Rank.THREE && isDefendingAce) {
+                game.waitingForTarget = true;
+                showMessage(`${player.name} mirrors with 3! Choose a player to attack!`);
+                updateDisplay();
+                return;
+            }
+
+            if (playedRank === Rank.TEN) {
+                game.aceAttackTarget = null;
+            }
+
+            // Check for burn
+            if (checkForBurn()) {
+                showMessage(`🔥 BURN! ${player.name} plays again!`);
+                game.pile = [];
+                game.aceAttackTarget = null;
+                drawCards(player);
+                updateDisplay();
+                return;
+            }
+
+            // Handle 8s
+            if (playedRank === Rank.EIGHT) {
+                game.skipsRemaining = numCards;
+                showMessage(`⏭️ Next ${numCards} turn(s) skipped!`);
+            }
+
+            if (isDefendingAce) {
+                game.aceAttackTarget = null;
+            }
+
+            // Check win condition
+            if (!player.hasCards()) {
+                showMessage(`🎉 ${player.name} wins!`);
+                return;
+            }
+
+            drawCards(player);
+            nextTurn();
+        }
+
+        // Check for burn
+        function checkForBurn() {
+            if (game.pile.length === 0) return false;
+
+            if (game.pile[game.pile.length - 1].rank === Rank.TEN) {
+                return true;
+            }
+
+            if (game.pile.length >= 4) {
+                const lastFour = game.pile.slice(-4);
+                if (lastFour.every(c => c.rank === lastFour[0].rank)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Next turn
+        function nextTurn() {
+            // Handle skips
+            if (game.skipsRemaining > 0 && game.aceAttackTarget === null) {
+                game.skipsRemaining--;
+                game.currentPlayerIdx = (game.currentPlayerIdx + 1) % game.players.length;
+                showMessage(`${game.players[game.currentPlayerIdx].name}'s turn skipped!`);
+                if (game.skipsRemaining > 0 || game.aceAttackTarget !== null) {
+                    setTimeout(nextTurn, 1500);
+                    updateDisplay();
+                    return;
+                }
+            }
+
+            game.currentPlayerIdx = (game.currentPlayerIdx + 1) % game.players.length;
+
+            // Remove players with no cards
+            game.players = game.players.filter(p => p.hasCards());
+            if (game.players.length <= 1) {
+                showMessage('Game Over!');
+                return;
+            }
+
+            game.currentPlayerIdx = game.currentPlayerIdx % game.players.length;
+
+            showMessage(`${game.players[game.currentPlayerIdx].name}'s turn`);
+            updateDisplay();
+        }
+
+        // Pick up pile
+        function pickupPile() {
+            const player = game.players[game.currentPlayerIdx];
+            player.hand.push(...game.pile);
+            showMessage(`${player.name} picks up ${game.pile.length} cards`);
+            game.pile = [];
+            game.aceAttackTarget = null;
+            game.selectedCards = [];
+            nextTurn();
+        }
+
+        // Target player with Ace
+        function targetPlayer(targetIdx) {
+            if (!game.waitingForTarget) return;
+            if (targetIdx === game.currentPlayerIdx) return;
+
+            const attacker = game.players[game.currentPlayerIdx];
+            const target = game.players[targetIdx];
+
+            game.aceAttackTarget = targetIdx;
+            game.waitingForTarget = false;
+
+            showMessage(`${attacker.name} attacks ${target.name}!`);
+
+            drawCards(attacker);
+            game.currentPlayerIdx = targetIdx;
+            updateDisplay();
+        }
+
+        // Show message
+        function showMessage(msg, type = 'info') {
+            const messagesEl = document.getElementById('messages');
+            messagesEl.innerHTML = `<span class="message-highlight">${msg}</span>`;
+        }
+
+        // Add click handlers for player areas (for targeting)
+        document.addEventListener('click', (e) => {
+            const playerArea = e.target.closest('.player-area.targetable');
+            if (playerArea && game.waitingForTarget) {
+                const playerIdx = parseInt(playerArea.id.split('-')[1]);
+                targetPlayer(playerIdx);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -265,8 +265,25 @@
         .player-cards {
             display: flex;
             gap: 5px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             margin-top: 10px;
+            overflow-x: auto;
+            max-width: 100%;
+            padding-bottom: 5px;
+        }
+
+        .player-cards::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .player-cards::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .player-cards::-webkit-scrollbar-thumb {
+            background: rgba(255, 215, 0, 0.5);
+            border-radius: 3px;
         }
 
         .card-section {
@@ -304,11 +321,11 @@
             min-height: 130px;
         }
 
-        #player-0 { bottom: 20px; left: 50%; transform: translateX(-50%); }
-        #player-1 { top: 20px; left: 20px; }
-        #player-2 { top: 20px; right: 20px; }
-        #player-3 { bottom: 20px; left: 20px; }
-        #player-4 { bottom: 20px; right: 20px; }
+        #player-0 { bottom: 20px; left: 50%; transform: translateX(-50%); max-width: 600px; }
+        #player-1 { top: 20px; left: 20px; max-width: 280px; }
+        #player-2 { top: 20px; right: 20px; max-width: 280px; }
+        #player-3 { bottom: 20px; left: 20px; max-width: 280px; }
+        #player-4 { bottom: 20px; right: 20px; max-width: 280px; }
 
         #controls {
             position: absolute;
@@ -616,8 +633,9 @@
             // Reconstruct card objects
             game = deserializeGameState(newGameState);
 
-            // Check if it's my turn to select face-up cards
-            if (game.setupPhase === 'faceup' && game.setupPlayerIdx === myPlayerIndex) {
+            // Check if I need to select face-up cards (if I haven't already)
+            const myPlayer = game.players[myPlayerIndex];
+            if (game.setupPhase === 'faceup' && myPlayer && myPlayer.faceUp.length === 0 && myPlayer.hand.length === 6) {
                 showFaceUpSelection();
             }
 
@@ -748,10 +766,10 @@
             game.selectedCards = [];
             document.getElementById('setup-faceup').style.display = 'none';
 
-            // Move to next player
-            game.setupPlayerIdx++;
+            // Check if all players have selected their face-up cards
+            const allPlayersDone = game.players.every(p => p.faceUp.length === 3);
 
-            if (game.setupPlayerIdx >= game.players.length) {
+            if (allPlayersDone) {
                 // All players done
                 game.setupPhase = 'done';
                 showMessage(`Game started! ${game.players[game.currentPlayerIdx].name}'s turn`);
@@ -759,11 +777,6 @@
 
             // Broadcast updated state
             broadcastGameState();
-
-            // If next player is me, show selection
-            if (game.setupPlayerIdx === myPlayerIndex && game.setupPhase === 'faceup') {
-                showFaceUpSelection();
-            }
 
             updateDisplay();
         }
@@ -789,6 +802,13 @@
             if (game.setupPhase === 'faceup' && game.setupPlayerIdx === myPlayerIndex) {
                 showFaceUpSelection();
                 return;
+            }
+
+            // Always show whose turn it is
+            if (game.currentPlayerIdx >= 0 && game.players[game.currentPlayerIdx]) {
+                const currentPlayer = game.players[game.currentPlayerIdx];
+                const isMyTurn = game.currentPlayerIdx === myPlayerIndex;
+                showMessage(isMyTurn ? "Your turn!" : `${currentPlayer.name}'s turn`);
             }
 
             // Update deck visual

@@ -60,7 +60,7 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Game already started');
             return;
         }
-        if (room.players.length >= 5) {
+        if (room.players.length >= 6) {
             socket.emit('error', 'Room is full');
             return;
         }

@@ -473,6 +473,96 @@
             font-size: 32px;
             color: white;
         }
+
+        @media (max-width: 768px) {
+            #game-container {
+                width: 100vw;
+                height: 100vh;
+            }
+
+            #center-area {
+                top: 25%;
+                transform: scale(0.7);
+            }
+
+            #messages {
+                font-size: 14px;
+                top: 5px;
+            }
+
+            .card {
+                width: 50px;
+                height: 70px;
+                font-size: 18px;
+            }
+
+            .player-area {
+                padding: 8px;
+                min-width: 150px;
+                font-size: 12px;
+            }
+
+            .player-name {
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+
+            #player-0 {
+                bottom: 5px;
+                left: 50%;
+                transform: translateX(-50%);
+                max-width: 90%;
+            }
+            #player-1 {
+                top: 10px;
+                left: 5px;
+                max-width: 45%;
+            }
+            #player-2 {
+                top: 10px;
+                right: 5px;
+                max-width: 45%;
+            }
+            #player-3 {
+                bottom: 80px;
+                left: 5px;
+                max-width: 45%;
+            }
+            #player-4 {
+                bottom: 80px;
+                right: 5px;
+                max-width: 45%;
+            }
+
+            #controls {
+                bottom: 5px;
+                right: 5px;
+                gap: 5px;
+            }
+
+            button {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+
+            .card-stack-container {
+                gap: 10px;
+                min-height: 80px;
+            }
+
+            .card-stack {
+                margin-right: 8px;
+            }
+
+            #lobby-screen {
+                padding: 20px;
+                min-width: 90vw;
+            }
+
+            #lobby-screen h1 {
+                font-size: 32px;
+            }
+        }
     </style>
 </head>
 <body>

@@ -852,7 +852,8 @@
             declaredCards: [],
             lastPlayerIdx: -1,
             canCallLie: false,
-            faceDownIndices: []
+            faceDownIndices: [],
+            declaredRanks: {} // Maps pile index to declared rank
         };
 
         // Card class
@@ -1180,6 +1181,16 @@
                     const card = game.pile[i];
                     const isFaceDown = game.faceDownIndices.includes(i);
                     const cardEl = createCardElement(card, null, isFaceDown);
+
+                    // If face-down with a declared rank, show the declared rank
+                    if (isFaceDown && game.declaredRanks[i]) {
+                        const rankLabel = document.createElement('div');
+                        rankLabel.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-weight: bold; color: white; text-shadow: 2px 2px 4px black; pointer-events: none;';
+                        rankLabel.textContent = RANK_NAMES[game.declaredRanks[i]];
+                        cardEl.style.position = 'relative';
+                        cardEl.appendChild(rankLabel);
+                    }
+
                     const offset = (i - startIdx) * 3;
                     cardEl.style.transform = `translate(${offset}px, ${offset}px)`;
                     cardEl.style.zIndex = i;
@@ -1335,8 +1346,9 @@
             playBtn.disabled = !canPlay;
             pickupBtn.disabled = game.currentPlayerIdx !== myPlayerIndex || game.waitingForTarget || game.pile.length === 0;
 
-            // Show/hide face down button
-            if (game.allowLying && canPlay) {
+            // Show/hide face down button - only for hand and face-up cards, NOT for final face-down cards
+            const isPlayingFromFaceDown = game.selectedCards.some(c => c.location === 'faceDown');
+            if (game.allowLying && canPlay && !isPlayingFromFaceDown) {
                 playFaceDownBtn.style.display = 'block';
                 playFaceDownBtn.disabled = false;
             } else {
@@ -1363,7 +1375,15 @@
 
             // If the last card was a 3, use the mirrored rank instead
             const topCard = game.pile[game.pile.length - 1];
-            const topRank = (topCard.rank === Rank.THREE && game.mirroredRank) ? game.mirroredRank : topCard.rank;
+            const topCardIndex = game.pile.length - 1;
+
+            // Use declared rank if card was played face-down, otherwise use actual rank
+            let topRank = topCard.rank;
+            if (game.declaredRanks[topCardIndex]) {
+                topRank = game.declaredRanks[topCardIndex];
+            } else if (topCard.rank === Rank.THREE && game.mirroredRank) {
+                topRank = game.mirroredRank;
+            }
 
             // 7 rule: must play 7 or lower (2, 3, and Ace are still special)
             if (topRank === Rank.SEVEN) {
@@ -1429,6 +1449,7 @@
                     showMessage(`${player.name} played ${blindCard.toString()} blind - can't play! Picks up pile with the card.`);
                     game.pile = [];
                     game.faceDownIndices = [];
+                    game.declaredRanks = {};
                     game.aceAttackTarget = null;
                     game.mirroredRank = null;
                     game.selectedCards = [];
@@ -1462,10 +1483,14 @@
                 }
             }
 
-            // Track which cards in pile are face-down
+            // Track which cards in pile are face-down and their declared ranks
             if (playFaceDown) {
                 for (let i = 0; i < numCards; i++) {
-                    game.faceDownIndices.push(startPileLength + i);
+                    const pileIdx = startPileLength + i;
+                    game.faceDownIndices.push(pileIdx);
+                    if (declaredRank) {
+                        game.declaredRanks[pileIdx] = declaredRank;
+                    }
                 }
             }
 
@@ -1557,6 +1582,7 @@
                         showMessage(`🔥 3 mirrors 10! ${player.name} burns the pile and plays again!`);
                         game.pile = [];
                         game.faceDownIndices = [];
+                        game.declaredRanks = {};
                         game.aceAttackTarget = null;
                         game.mirroredRank = null;
                         drawCards(player);
@@ -1578,6 +1604,7 @@
                 showMessage(`🔥 BURN! ${player.name} plays again!`);
                 game.pile = [];
                 game.faceDownIndices = [];
+                game.declaredRanks = {};
                 game.aceAttackTarget = null;
                 game.mirroredRank = null;
                 drawCards(player);
@@ -1678,6 +1705,7 @@
             showMessage(`${player.name} picks up ${game.pile.length} cards`);
             game.pile = [];
             game.faceDownIndices = [];
+            game.declaredRanks = {};
             game.aceAttackTarget = null;
             game.mirroredRank = null;
             game.selectedCards = [];
@@ -1708,6 +1736,7 @@
                 liar.hand.push(...game.pile);
                 game.pile = [];
                 game.faceDownIndices = [];
+                game.declaredRanks = {};
                 game.mirroredRank = null;
                 game.currentPlayerIdx = game.lastPlayerIdx;
             } else {
@@ -1715,6 +1744,7 @@
                 game.players[myPlayerIndex].hand.push(...game.pile);
                 game.pile = [];
                 game.faceDownIndices = [];
+                game.declaredRanks = {};
                 game.mirroredRank = null;
             }
 

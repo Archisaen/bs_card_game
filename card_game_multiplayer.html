@@ -978,7 +978,7 @@
 
             // Check if I need to select face-up cards (if I haven't already)
             const myPlayer = game.players[myPlayerIndex];
-            if (game.setupPhase === 'faceup' && myPlayer && myPlayer.faceUp.length === 0 && myPlayer.hand.length === 6) {
+            if (game.setupPhase === 'faceup' && myPlayer && myPlayer.faceUp.length === 0 && myPlayer.hand.length === 4) {
                 showFaceUpSelection();
             }
 
@@ -1029,11 +1029,11 @@
 
             // Deal cards
             for (let player of game.players) {
-                player.faceDown = [drawCard(), drawCard(), drawCard()];
+                player.faceDown = [drawCard(), drawCard()];
             }
 
             for (let player of game.players) {
-                for (let i = 0; i < 6; i++) {
+                for (let i = 0; i < 4; i++) {
                     player.hand.push(drawCard());
                 }
             }
@@ -1080,7 +1080,7 @@
                         game.selectedCards = game.selectedCards.filter(i => i !== idx);
                         cardEl.classList.remove('selected');
                     } else {
-                        if (game.selectedCards.length < 3) {
+                        if (game.selectedCards.length < 2) {
                             game.selectedCards.push(idx);
                             cardEl.classList.add('selected');
                         }
@@ -1094,8 +1094,8 @@
         }
 
         function confirmFaceUp() {
-            if (game.selectedCards.length !== 3) {
-                alert('Please select exactly 3 cards');
+            if (game.selectedCards.length !== 2) {
+                alert('Please select exactly 2 cards');
                 return;
             }
 
@@ -1110,7 +1110,7 @@
             document.getElementById('setup-faceup').style.display = 'none';
 
             // Check if all players have selected their face-up cards
-            const allPlayersDone = game.players.every(p => p.faceUp.length === 3);
+            const allPlayersDone = game.players.every(p => p.faceUp.length === 2);
 
             if (allPlayersDone) {
                 // All players done

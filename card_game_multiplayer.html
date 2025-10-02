@@ -558,7 +558,7 @@
             }
 
             #player-0 {
-                bottom: 5px;
+                bottom: 60px;
                 left: 50%;
                 transform: translateX(-50%);
                 max-width: 90%;
@@ -591,13 +591,17 @@
 
             #controls {
                 bottom: 5px;
-                right: 5px;
-                gap: 5px;
+                left: 50%;
+                transform: translateX(-50%);
+                right: auto;
+                gap: 10px;
+                z-index: 200;
             }
 
             button {
-                padding: 8px 12px;
-                font-size: 14px;
+                padding: 12px 20px;
+                font-size: 16px;
+                flex: 1;
             }
 
             .card-stack-container {
@@ -632,6 +636,79 @@
                 width: 90vw;
                 max-width: 400px;
                 height: 225px;
+            }
+        }
+
+        @media (max-width: 768px) and (orientation: landscape) {
+            #center-area {
+                top: 50%;
+                transform: translateY(-50%) scale(0.6);
+            }
+
+            #player-0 {
+                bottom: 55px;
+                left: 50%;
+                transform: translateX(-50%);
+                max-width: 40%;
+            }
+
+            #player-1 {
+                top: 5px;
+                left: 5px;
+                max-width: 25%;
+            }
+
+            #player-2 {
+                top: 5px;
+                right: 5px;
+                max-width: 25%;
+            }
+
+            #player-3 {
+                bottom: 55px;
+                left: 5px;
+                max-width: 25%;
+            }
+
+            #player-4 {
+                bottom: 55px;
+                right: 5px;
+                max-width: 25%;
+            }
+
+            #player-5 {
+                top: 50%;
+                left: 5px;
+                transform: translateY(-50%);
+                max-width: 25%;
+            }
+
+            .player-area {
+                padding: 5px;
+                min-width: 120px;
+                font-size: 10px;
+            }
+
+            .player-name {
+                font-size: 12px;
+            }
+
+            .card {
+                width: 40px;
+                height: 56px;
+                font-size: 14px;
+            }
+
+            button {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+
+            #controls {
+                bottom: 5px;
+                left: 50%;
+                transform: translateX(-50%);
+                gap: 8px;
             }
         }
     </style>

@@ -1182,19 +1182,25 @@
                     const isFaceDown = game.faceDownIndices.includes(i);
                     const cardEl = createCardElement(card, null, isFaceDown);
 
+                    // Wrapper for positioning
+                    const wrapper = document.createElement('div');
+                    wrapper.style.position = 'relative';
+                    wrapper.style.display = 'inline-block';
+
                     // If face-down with a declared rank, show the declared rank
                     if (isFaceDown && game.declaredRanks[i]) {
                         const rankLabel = document.createElement('div');
-                        rankLabel.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-weight: bold; color: white; text-shadow: 2px 2px 4px black; pointer-events: none;';
+                        rankLabel.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; font-weight: bold; color: gold; text-shadow: 2px 2px 6px black, -1px -1px 2px black, 1px -1px 2px black, -1px 1px 2px black; pointer-events: none; z-index: 10;';
                         rankLabel.textContent = RANK_NAMES[game.declaredRanks[i]];
-                        cardEl.style.position = 'relative';
-                        cardEl.appendChild(rankLabel);
+                        wrapper.appendChild(rankLabel);
                     }
 
+                    wrapper.appendChild(cardEl);
+
                     const offset = (i - startIdx) * 3;
-                    cardEl.style.transform = `translate(${offset}px, ${offset}px)`;
-                    cardEl.style.zIndex = i;
-                    pileEl.appendChild(cardEl);
+                    wrapper.style.transform = `translate(${offset}px, ${offset}px)`;
+                    wrapper.style.zIndex = i;
+                    pileEl.appendChild(wrapper);
                 }
             }
             document.getElementById('pile-info').textContent = `Pile: ${game.pile.length} cards`;
@@ -1414,14 +1420,7 @@
             // If playing face down with lying enabled, ask what to declare
             let declaredRank = null;
             if (playFaceDown && game.allowLying) {
-                const rankOptions = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack (11)', 'Queen (12)', 'King (13)', 'Ace (14)'];
-                const rankValues = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
-
-                let optionsHTML = rankOptions.map((name, idx) =>
-                    `<option value="${rankValues[idx]}">${name}</option>`
-                ).join('');
-
-                const selection = prompt(`What rank do you want to declare?\n\nEnter number (2-14):\n2=Two, 3=Three, 4=Four, 5=Five, 6=Six, 7=Seven, 8=Eight, 9=Nine, 10=Ten, 11=Jack, 12=Queen, 13=King, 14=Ace`);
+                const selection = prompt(`What rank do you want to declare for ${cards.length > 1 ? 'these cards' : 'this card'}?\n\nEnter number:\n2, 3, 4, 5, 6, 7, 8, 9, 10, 11=Jack, 12=Queen, 13=King, 14=Ace`);
 
                 if (!selection) return;
                 declaredRank = parseInt(selection);
@@ -1492,6 +1491,8 @@
                         game.declaredRanks[pileIdx] = declaredRank;
                     }
                 }
+                // Immediately broadcast so other players know the declared rank
+                broadcastGameState();
             }
 
             game.selectedCards = [];
@@ -1508,7 +1509,8 @@
                 // Store what was declared vs actual
                 if (playFaceDown && declaredRank) {
                     game.declaredCards = cards.map(() => ({ rank: declaredRank }));
-                    showMessage(`${player.name} plays ${cards.length} card(s) face down, declaring rank ${declaredRank}`);
+                    const rankName = RANK_NAMES[declaredRank];
+                    showMessage(`${player.name} plays ${cards.length} ${rankName}${cards.length > 1 ? 's' : ''} face down`);
                 } else {
                     game.declaredCards = [...cards];
                     showMessage(`${player.name} plays ${cards.map(c => c.toString()).join(', ')}`);
@@ -1551,33 +1553,39 @@
 
             // Handle 3 (mirrors last non-3 card)
             if (playedRank === Rank.THREE && game.pile.length >= 2) {
-                // Find the last non-3 card in the pile
+                // Find the last non-3 card in the pile (check both actual and declared rank)
                 let cardToMirror = null;
+                let mirrorIndex = -1;
                 for (let i = game.pile.length - 2; i >= 0; i--) {
-                    if (game.pile[i].rank !== Rank.THREE) {
+                    const actualOrDeclaredRank = game.declaredRanks[i] || game.pile[i].rank;
+                    if (actualOrDeclaredRank !== Rank.THREE) {
                         cardToMirror = game.pile[i];
+                        mirrorIndex = i;
                         break;
                     }
                 }
 
                 if (cardToMirror) {
-                    // Store the mirrored rank for validation
-                    game.mirroredRank = cardToMirror.rank;
-                    showMessage(`${player.name} mirrors ${cardToMirror.toString()} with 3!`);
+                    // Use declared rank if card was played face-down, otherwise use actual rank
+                    const rankToMirror = game.declaredRanks[mirrorIndex] || cardToMirror.rank;
+                    game.mirroredRank = rankToMirror;
 
-                    // Apply the effect of the mirrored card
-                    if (cardToMirror.rank === Rank.ACE) {
+                    const rankName = RANK_NAMES[rankToMirror];
+                    showMessage(`${player.name} mirrors ${rankName} with 3!`);
+
+                    // Apply the effect of the mirrored card (use declared rank if available)
+                    if (rankToMirror === Rank.ACE) {
                         game.waitingForTarget = true;
                         showMessage(`${player.name} mirrors Ace! Choose a player to attack!`);
                         showAttackPopup();
                         broadcastGameState();
                         updateDisplay();
                         return;
-                    } else if (cardToMirror.rank === Rank.EIGHT) {
+                    } else if (rankToMirror === Rank.EIGHT) {
                         // Mirror 8's skip effect
                         game.skipsRemaining += numCards;
                         showMessage(`⏭️ 3 mirrors 8! ${numCards} more turn(s) skipped!`);
-                    } else if (cardToMirror.rank === Rank.TEN) {
+                    } else if (rankToMirror === Rank.TEN) {
                         // Mirror 10's burn effect
                         showMessage(`🔥 3 mirrors 10! ${player.name} burns the pile and plays again!`);
                         game.pile = [];

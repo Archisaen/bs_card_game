@@ -1062,7 +1062,7 @@
         }
 
         function drawCards(player) {
-            while (player.hand.length < 3 && game.deck.length > 0) {
+            while (player.hand.length < 2 && game.deck.length > 0) {
                 player.hand.push(drawCard());
             }
         }
@@ -1434,8 +1434,8 @@
                 }
             }
 
-            // Validate non-blind cards
-            if (!isBlind) {
+            // Validate non-blind cards (skip validation if playing face-down)
+            if (!isBlind && !playFaceDown) {
                 for (let card of cards) {
                     if (!canPlayCard(card, isDefendingAce)) {
                         showMessage(`Cannot play ${card.toString()}!`);
@@ -1458,7 +1458,8 @@
 
             game.selectedCards = [];
 
-            const playedRank = cards[0].rank;
+            // Use declared rank if playing face-down, otherwise use actual rank
+            const playedRank = (playFaceDown && declaredRank) ? declaredRank : cards[0].rank;
             const numCards = cards.length;
 
             // Track last played cards for lying mechanic

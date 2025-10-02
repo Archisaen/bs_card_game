@@ -853,7 +853,8 @@
             lastPlayerIdx: -1,
             canCallLie: false,
             faceDownIndices: [],
-            declaredRanks: {} // Maps pile index to declared rank
+            declaredRanks: {}, // Maps pile index to declared rank
+            winnerName: null
         };
 
         // Card class
@@ -977,6 +978,12 @@
         socket.on('gameStateChanged', (newGameState) => {
             // Reconstruct card objects
             game = deserializeGameState(newGameState);
+
+            // Check if someone won and show celebration for all players
+            if (game.winnerName) {
+                showMessage(`🎉 ${game.winnerName} wins!`);
+                showWinnerCelebration(game.winnerName);
+            }
 
             // Check if I need to select face-up cards (if I haven't already)
             const myPlayer = game.players[myPlayerIndex];
@@ -1632,6 +1639,7 @@
 
             if (!player.hasCards()) {
                 showMessage(`🎉 ${player.name} wins!`);
+                game.winnerName = player.name;
                 showWinnerCelebration(player.name);
                 broadcastGameState();
                 updateDisplay();

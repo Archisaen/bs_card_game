@@ -851,7 +851,8 @@
             lastPlayedCards: [],
             declaredCards: [],
             lastPlayerIdx: -1,
-            canCallLie: false
+            canCallLie: false,
+            faceDownIndices: []
         };
 
         // Card class
@@ -1177,7 +1178,8 @@
 
                 for (let i = startIdx; i < game.pile.length; i++) {
                     const card = game.pile[i];
-                    const cardEl = createCardElement(card, null);
+                    const isFaceDown = game.faceDownIndices.includes(i);
+                    const cardEl = createCardElement(card, null, isFaceDown);
                     const offset = (i - startIdx) * 3;
                     cardEl.style.transform = `translate(${offset}px, ${offset}px)`;
                     cardEl.style.zIndex = i;
@@ -1426,6 +1428,7 @@
                     player.hand.push(...game.pile);
                     showMessage(`${player.name} played ${blindCard.toString()} blind - can't play! Picks up pile with the card.`);
                     game.pile = [];
+                    game.faceDownIndices = [];
                     game.aceAttackTarget = null;
                     game.mirroredRank = null;
                     game.selectedCards = [];
@@ -1446,6 +1449,9 @@
 
             // Remove cards from player
             const sortedSelected = [...game.selectedCards].sort((a, b) => b.idx - a.idx);
+            const startPileLength = game.pile.length;
+            const numCards = cards.length;
+
             for (let { location, idx } of sortedSelected) {
                 if (location === 'hand') {
                     game.pile.push(player.hand.splice(idx, 1)[0]);
@@ -1456,11 +1462,17 @@
                 }
             }
 
+            // Track which cards in pile are face-down
+            if (playFaceDown) {
+                for (let i = 0; i < numCards; i++) {
+                    game.faceDownIndices.push(startPileLength + i);
+                }
+            }
+
             game.selectedCards = [];
 
             // Use declared rank if playing face-down, otherwise use actual rank
             const playedRank = (playFaceDown && declaredRank) ? declaredRank : cards[0].rank;
-            const numCards = cards.length;
 
             // Track last played cards for lying mechanic
             if (game.allowLying) {
@@ -1544,6 +1556,7 @@
                         // Mirror 10's burn effect
                         showMessage(`🔥 3 mirrors 10! ${player.name} burns the pile and plays again!`);
                         game.pile = [];
+                        game.faceDownIndices = [];
                         game.aceAttackTarget = null;
                         game.mirroredRank = null;
                         drawCards(player);
@@ -1564,6 +1577,7 @@
             if (checkForBurn()) {
                 showMessage(`🔥 BURN! ${player.name} plays again!`);
                 game.pile = [];
+                game.faceDownIndices = [];
                 game.aceAttackTarget = null;
                 game.mirroredRank = null;
                 drawCards(player);
@@ -1663,6 +1677,7 @@
             player.hand.push(...game.pile);
             showMessage(`${player.name} picks up ${game.pile.length} cards`);
             game.pile = [];
+            game.faceDownIndices = [];
             game.aceAttackTarget = null;
             game.mirroredRank = null;
             game.selectedCards = [];
@@ -1692,12 +1707,14 @@
                 showMessage(`🤥 ${liar.name} was lying! Actual: ${game.lastPlayedCards.map(c => c.toString()).join(', ')} vs Declared: rank ${game.declaredCards[0].rank}. ${liar.name} picks up the pile!`);
                 liar.hand.push(...game.pile);
                 game.pile = [];
+                game.faceDownIndices = [];
                 game.mirroredRank = null;
                 game.currentPlayerIdx = game.lastPlayerIdx;
             } else {
                 showMessage(`❌ ${game.players[myPlayerIndex].name} called wrong! ${liar.name} was telling the truth! You pick up the pile!`);
                 game.players[myPlayerIndex].hand.push(...game.pile);
                 game.pile = [];
+                game.faceDownIndices = [];
                 game.mirroredRank = null;
             }
 

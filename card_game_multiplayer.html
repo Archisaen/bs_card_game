@@ -321,7 +321,7 @@
             min-height: 130px;
         }
 
-        #player-0 { bottom: 10px; left: 50%; transform: translateX(-50%); max-width: 500px; }
+        #player-0 { bottom: 5px; left: 35%; transform: translateX(-50%); max-width: 380px; }
         #player-1 { top: 20px; left: 20px; max-width: 280px; }
         #player-2 { top: 20px; right: 20px; max-width: 280px; }
         #player-3 { bottom: 20px; left: 20px; max-width: 280px; }
@@ -379,30 +379,6 @@
             max-width: 600px;
             text-align: center;
             z-index: 100;
-        }
-
-        #turn-timer {
-            position: absolute;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px 25px;
-            border-radius: 10px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #ffd700;
-            z-index: 100;
-        }
-
-        #turn-timer.warning {
-            color: #ff4444;
-            animation: pulse-timer 0.5s infinite;
-        }
-
-        @keyframes pulse-timer {
-            0%, 100% { transform: translateX(-50%) scale(1); }
-            50% { transform: translateX(-50%) scale(1.1); }
         }
 
         .message-highlight {
@@ -547,7 +523,6 @@
         <!-- Game Table -->
         <div id="game-table">
             <div id="messages"></div>
-            <div id="turn-timer" style="display: none;">30</div>
 
             <div id="center-area">
                 <div id="deck-container">
@@ -604,47 +579,6 @@
             setupPlayerIdx: 0,
             waitingForTarget: false
         };
-
-        // Turn timer (not synced, each client manages their own)
-        let turnTimer = null;
-        let turnTimeRemaining = 30;
-
-        // Timer functions
-        function startTurnTimer() {
-            stopTurnTimer();
-            turnTimeRemaining = 30;
-
-            const timerEl = document.getElementById('turn-timer');
-            timerEl.style.display = 'block';
-            timerEl.textContent = turnTimeRemaining;
-            timerEl.classList.remove('warning');
-
-            turnTimer = setInterval(() => {
-                turnTimeRemaining--;
-                timerEl.textContent = turnTimeRemaining;
-
-                if (turnTimeRemaining <= 10) {
-                    timerEl.classList.add('warning');
-                }
-
-                if (turnTimeRemaining <= 0) {
-                    stopTurnTimer();
-                    if (game.currentPlayerIdx === myPlayerIndex) {
-                        showMessage('Time up! Picking up pile...');
-                        setTimeout(() => pickupPile(), 1000);
-                    }
-                }
-            }, 1000);
-        }
-
-        function stopTurnTimer() {
-            if (turnTimer) {
-                clearInterval(turnTimer);
-                turnTimer = null;
-            }
-            const timerEl = document.getElementById('turn-timer');
-            timerEl.style.display = 'none';
-        }
 
         // Card class
         class Card {
@@ -906,7 +840,6 @@
                 // All players done
                 game.setupPhase = 'done';
                 showMessage(`Game started! ${game.players[game.currentPlayerIdx].name}'s turn`);
-                startTurnTimer();
             }
 
             // Broadcast updated state
@@ -1153,7 +1086,6 @@
             if (game.currentPlayerIdx !== myPlayerIndex) return;
             if (game.waitingForTarget) return;
 
-            stopTurnTimer();
             const player = game.players[myPlayerIndex];
             const cards = game.selectedCards.map(c => c.card);
             const isDefendingAce = game.aceAttackTarget === myPlayerIndex;
@@ -1296,7 +1228,6 @@
             }
 
             if (!player.hasCards()) {
-                stopTurnTimer();
                 showMessage(`🎉 ${player.name} wins!`);
                 showWinnerCelebration(player.name);
                 broadcastGameState();
@@ -1360,13 +1291,11 @@
             showMessage(`${game.players[game.currentPlayerIdx].name}'s turn`);
             broadcastGameState();
             updateDisplay();
-            startTurnTimer();
         }
 
         function pickupPile() {
             if (game.currentPlayerIdx !== myPlayerIndex) return;
 
-            stopTurnTimer();
             const player = game.players[myPlayerIndex];
             player.hand.push(...game.pile);
             showMessage(`${player.name} picks up ${game.pile.length} cards`);

@@ -803,7 +803,8 @@
             </div>
 
             <div id="controls">
-                <button id="play-btn" onclick="playCards()" disabled>Play Selected Cards</button>
+                <button id="play-btn" onclick="playCards(false)" disabled>Play Selected Cards</button>
+                <button id="play-facedown-btn" onclick="playCards(true)" disabled style="background: #9b59b6; display: none;">🃏 Play Face Down</button>
                 <button id="pickup-btn" onclick="pickupPile()" disabled>Pick Up Pile</button>
                 <button id="lie-btn" onclick="callLie()" disabled style="background: #ff6b6b; display: none;">🤥 Call Lie!</button>
             </div>
@@ -848,6 +849,7 @@
             mirroredRank: null,
             allowLying: false,
             lastPlayedCards: [],
+            declaredCards: [],
             lastPlayerIdx: -1,
             canCallLie: false
         };
@@ -1320,6 +1322,7 @@
 
         function updateControls() {
             const playBtn = document.getElementById('play-btn');
+            const playFaceDownBtn = document.getElementById('play-facedown-btn');
             const pickupBtn = document.getElementById('pickup-btn');
             const lieBtn = document.getElementById('lie-btn');
 
@@ -1329,6 +1332,15 @@
 
             playBtn.disabled = !canPlay;
             pickupBtn.disabled = game.currentPlayerIdx !== myPlayerIndex || game.waitingForTarget || game.pile.length === 0;
+
+            // Show/hide face down button
+            if (game.allowLying && canPlay) {
+                playFaceDownBtn.style.display = 'block';
+                playFaceDownBtn.disabled = false;
+            } else {
+                playFaceDownBtn.style.display = 'none';
+                playFaceDownBtn.disabled = true;
+            }
 
             // Show/hide lie button
             if (game.allowLying && game.canCallLie && game.lastPlayerIdx !== myPlayerIndex && game.lastPlayerIdx >= 0) {
@@ -1367,7 +1379,7 @@
             return card.rank >= topRank;
         }
 
-        function playCards() {
+        function playCards(playFaceDown = false) {
             if (game.selectedCards.length === 0) return;
             if (game.currentPlayerIdx !== myPlayerIndex) return;
             if (game.waitingForTarget) return;
@@ -1376,6 +1388,26 @@
             const cards = game.selectedCards.map(c => c.card);
             const isDefendingAce = game.aceAttackTarget === myPlayerIndex;
             const isBlind = player.isPlayingBlind();
+
+            // If playing face down with lying enabled, ask what to declare
+            let declaredRank = null;
+            if (playFaceDown && game.allowLying) {
+                const rankOptions = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack (11)', 'Queen (12)', 'King (13)', 'Ace (14)'];
+                const rankValues = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+
+                let optionsHTML = rankOptions.map((name, idx) =>
+                    `<option value="${rankValues[idx]}">${name}</option>`
+                ).join('');
+
+                const selection = prompt(`What rank do you want to declare?\n\nEnter number (2-14):\n2=Two, 3=Three, 4=Four, 5=Five, 6=Six, 7=Seven, 8=Eight, 9=Nine, 10=Ten, 11=Jack, 12=Queen, 13=King, 14=Ace`);
+
+                if (!selection) return;
+                declaredRank = parseInt(selection);
+                if (isNaN(declaredRank) || declaredRank < 2 || declaredRank > 14) {
+                    alert('Invalid rank! Must be 2-14');
+                    return;
+                }
+            }
 
             // Check if playing blind card that can't be played
             if (isBlind && cards.length > 0) {
@@ -1434,6 +1466,16 @@
                 // Clear previous lie opportunity when new cards are played
                 game.canCallLie = false;
                 game.lastPlayedCards = [...cards];
+
+                // Store what was declared vs actual
+                if (playFaceDown && declaredRank) {
+                    game.declaredCards = cards.map(() => ({ rank: declaredRank }));
+                    showMessage(`${player.name} plays ${cards.length} card(s) face down, declaring rank ${declaredRank}`);
+                } else {
+                    game.declaredCards = [...cards];
+                    showMessage(`${player.name} plays ${cards.map(c => c.toString()).join(', ')}`);
+                }
+
                 game.lastPlayerIdx = myPlayerIndex;
                 // Enable lie calling after this play completes
                 setTimeout(() => {
@@ -1441,9 +1483,9 @@
                     broadcastGameState();
                     updateDisplay();
                 }, 100);
+            } else {
+                showMessage(`${player.name} plays ${cards.map(c => c.toString()).join(', ')}`);
             }
-
-            showMessage(`${player.name} plays ${cards.map(c => c.toString()).join(', ')}`);
 
             // Handle special cards
             if (playedRank === Rank.ACE && !isDefendingAce) {
@@ -1633,27 +1675,26 @@
             if (game.lastPlayerIdx < 0) return;
 
             const liar = game.players[game.lastPlayerIdx];
-            const lastCards = game.pile.slice(-game.lastPlayedCards.length);
 
-            // Check if the played cards match what was actually in the pile
+            // Check if declared cards match actual played cards
             let wasLying = false;
             for (let i = 0; i < game.lastPlayedCards.length; i++) {
-                const playedCard = game.lastPlayedCards[i];
-                const actualCard = lastCards[i];
-                if (playedCard.rank !== actualCard.rank || playedCard.suit !== actualCard.suit) {
+                const actualCard = game.lastPlayedCards[i];
+                const declaredCard = game.declaredCards[i];
+                if (actualCard.rank !== declaredCard.rank) {
                     wasLying = true;
                     break;
                 }
             }
 
             if (wasLying) {
-                showMessage(`🤥 ${liar.name} was lying! They pick up the pile!`);
+                showMessage(`🤥 ${liar.name} was lying! Actual: ${game.lastPlayedCards.map(c => c.toString()).join(', ')} vs Declared: rank ${game.declaredCards[0].rank}. ${liar.name} picks up the pile!`);
                 liar.hand.push(...game.pile);
                 game.pile = [];
                 game.mirroredRank = null;
                 game.currentPlayerIdx = game.lastPlayerIdx;
             } else {
-                showMessage(`❌ ${game.players[myPlayerIndex].name} called wrong! You pick up the pile!`);
+                showMessage(`❌ ${game.players[myPlayerIndex].name} called wrong! ${liar.name} was telling the truth! You pick up the pile!`);
                 game.players[myPlayerIndex].hand.push(...game.pile);
                 game.pile = [];
                 game.mirroredRank = null;
@@ -1661,6 +1702,7 @@
 
             game.canCallLie = false;
             game.lastPlayedCards = [];
+            game.declaredCards = [];
             game.lastPlayerIdx = -1;
 
             broadcastGameState();
@@ -1686,6 +1728,16 @@
         function showTurnPopup() {
             const popup = document.getElementById('turn-popup');
             popup.style.display = 'block';
+
+            // Play notification sound
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZRQ0PVKzn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFw==');
+                audio.volume = 0.5;
+                audio.play().catch(e => console.log('Audio play failed:', e));
+            } catch(e) {
+                console.log('Audio creation failed:', e);
+            }
+
             setTimeout(() => {
                 popup.style.display = 'none';
             }, 2000);

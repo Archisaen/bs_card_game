@@ -1017,11 +1017,39 @@
             const player = game.players[myPlayerIndex];
             const cards = game.selectedCards.map(c => c.card);
             const isDefendingAce = game.aceAttackTarget === myPlayerIndex;
+            const isBlind = player.isPlayingBlind();
 
-            for (let card of cards) {
-                if (!canPlayCard(card, isDefendingAce)) {
-                    showMessage(`Cannot play ${card.toString()}!`);
+            // Check if playing blind card that can't be played
+            if (isBlind && cards.length > 0) {
+                const blindCard = cards[0];
+                if (!canPlayCard(blindCard, isDefendingAce)) {
+                    // Remove the blind card from face-down
+                    const sortedSelected = [...game.selectedCards].sort((a, b) => b.idx - a.idx);
+                    for (let { location, idx } of sortedSelected) {
+                        if (location === 'faceDown') {
+                            player.faceDown.splice(idx, 1);
+                        }
+                    }
+
+                    // Add blind card to hand and pick up pile
+                    player.hand.push(blindCard);
+                    player.hand.push(...game.pile);
+                    showMessage(`${player.name} played ${blindCard.toString()} blind - can't play! Picks up pile with the card.`);
+                    game.pile = [];
+                    game.aceAttackTarget = null;
+                    game.selectedCards = [];
+                    nextTurn();
                     return;
+                }
+            }
+
+            // Validate non-blind cards
+            if (!isBlind) {
+                for (let card of cards) {
+                    if (!canPlayCard(card, isDefendingAce)) {
+                        showMessage(`Cannot play ${card.toString()}!`);
+                        return;
+                    }
                 }
             }
 
@@ -1066,12 +1094,32 @@
                 game.aceAttackTarget = null;
             }
 
-            if (playedRank === Rank.THREE && isDefendingAce) {
-                game.waitingForTarget = true;
-                showMessage(`${player.name} mirrors with 3! Choose a player to attack!`);
-                broadcastGameState();
-                updateDisplay();
-                return;
+            // Handle 3 (mirrors card below)
+            if (playedRank === Rank.THREE && game.pile.length >= 2) {
+                const cardBelow = game.pile[game.pile.length - 2];
+                showMessage(`${player.name} mirrors ${cardBelow.toString()} with 3!`);
+
+                // Apply the effect of the card below
+                if (cardBelow.rank === Rank.ACE) {
+                    game.waitingForTarget = true;
+                    showMessage(`${player.name} mirrors Ace! Choose a player to attack!`);
+                    broadcastGameState();
+                    updateDisplay();
+                    return;
+                } else if (cardBelow.rank === Rank.EIGHT) {
+                    // Mirror 8's skip effect
+                    game.skipsRemaining += numCards;
+                    showMessage(`⏭️ 3 mirrors 8! ${numCards} more turn(s) skipped!`);
+                } else if (cardBelow.rank === Rank.TEN) {
+                    // Mirror 10's burn effect
+                    showMessage(`🔥 3 mirrors 10! ${player.name} burns the pile and plays again!`);
+                    game.pile = [];
+                    game.aceAttackTarget = null;
+                    drawCards(player);
+                    broadcastGameState();
+                    updateDisplay();
+                    return;
+                }
             }
 
             if (playedRank === Rank.TEN) {

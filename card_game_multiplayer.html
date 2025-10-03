@@ -709,10 +709,11 @@
             font-weight: bold;
             color: #000;
             text-align: center;
-            z-index: 1500;
+            z-index: 9999;
             display: none;
             box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
             animation: shake 0.5s infinite;
+            pointer-events: none;
         }
 
         @keyframes shake {
@@ -2033,7 +2034,9 @@
         }
 
         function showTurnPopup() {
+            console.log('=== TURN POPUP CALLED ===');
             const popup = document.getElementById('turn-popup');
+            console.log('Popup element:', popup);
             popup.style.display = 'block';
 
             // Play notification sound

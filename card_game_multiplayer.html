@@ -1542,6 +1542,15 @@
                         cardEl.appendChild(rankLabel);
                     }
 
+                    // If it's a 3 card and there's a mirrored rank, show what it's mirroring
+                    const cardRank = game.declaredRanks[i] || card.rank;
+                    if (cardRank === Rank.THREE && game.mirroredRank) {
+                        const mirrorLabel = document.createElement('div');
+                        mirrorLabel.style.cssText = 'position: absolute; bottom: 3px; right: 3px; font-size: 14px; font-weight: bold; color: #00ff00; background: rgba(0,0,0,0.8); padding: 3px 6px; border-radius: 4px; border: 1px solid #00ff00; pointer-events: none; z-index: 2; text-shadow: 0 0 5px #00ff00;';
+                        mirrorLabel.textContent = '→' + RANK_NAMES[game.mirroredRank];
+                        cardEl.appendChild(mirrorLabel);
+                    }
+
                     const offset = (i - startIdx) * 3;
                     cardEl.style.transform = `translate(${offset}px, ${offset}px)`;
                     cardEl.style.zIndex = i;
@@ -1906,8 +1915,9 @@
                 game.aceAttackTarget = null;
             }
 
-            // Handle 3 (mirrors last non-3 card)
-            if (playedRank === Rank.THREE && game.pile.length >= 2) {
+            // Handle 3 (mirrors last non-3 card) - use ACTUAL rank, not declared
+            const actualRank = cards[0].rank;
+            if (actualRank === Rank.THREE && game.pile.length >= 2) {
                 // Find the last non-3 card in the pile (check both actual and declared rank)
                 let cardToMirror = null;
                 let mirrorIndex = -1;
@@ -1955,7 +1965,7 @@
                         return;
                     }
                 }
-            } else if (playedRank !== Rank.THREE) {
+            } else if (actualRank !== Rank.THREE) {
                 // Clear mirrored rank when a non-3 card is played
                 game.mirroredRank = null;
             }
@@ -2086,6 +2096,11 @@
             game.mirroredRank = null;
             game.selectedCards = [];
             game.canCallLie = false;
+
+            // Broadcast state changes before advancing turn to prevent desync
+            broadcastGameState();
+            updateDisplay();
+
             nextTurn();
         }
 
@@ -2157,18 +2172,44 @@
             console.log('Popup element:', popup);
             popup.style.display = 'block';
 
-            // Play notification sound
+            // Play longer notification sound using Web Audio API
             try {
-                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZRQ0PVKzn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFwxNpuPzvmwjBzyP1PLUfi8GIXfH7+GURgsPU6vn77FZFw==');
-                audio.volume = 0.5;
-                audio.play().catch(e => console.log('Audio play failed:', e));
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Create a series of beeps for attention
+                const beepTimes = [0, 0.2, 0.4, 0.6]; // 4 beeps
+                const beepDuration = 0.15;
+
+                beepTimes.forEach(startTime => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    // Frequency: 800Hz for a noticeable beep
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+
+                    // Volume envelope for smooth beep
+                    const now = audioContext.currentTime + startTime;
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01);
+                    gainNode.gain.linearRampToValueAtTime(0.3, now + beepDuration - 0.01);
+                    gainNode.gain.linearRampToValueAtTime(0, now + beepDuration);
+
+                    oscillator.start(now);
+                    oscillator.stop(now + beepDuration);
+                });
+
+                console.log('Turn notification sound playing');
             } catch(e) {
                 console.log('Audio creation failed:', e);
             }
 
             setTimeout(() => {
                 popup.style.display = 'none';
-            }, 2000);
+            }, 2500);
         }
 
         function showWinnerCelebration(winnerName) {

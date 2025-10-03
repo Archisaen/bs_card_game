@@ -117,7 +117,15 @@
             z-index: 600;
         }
 
-        #rules-button {
+        /* Leaderboard dropdown */
+        #leaderboard-container {
+            position: fixed;
+            top: 20px;
+            left: 140px;
+            z-index: 600;
+        }
+
+        #rules-button, #leaderboard-button {
             background: linear-gradient(135deg, rgba(40, 20, 10, 0.95) 0%, rgba(20, 10, 5, 0.98) 100%);
             border: 2px solid rgba(139, 90, 43, 0.4);
             color: #ffd700;
@@ -128,7 +136,7 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
         }
 
-        #rules-button:hover {
+        #rules-button:hover, #leaderboard-button:hover {
             background: linear-gradient(135deg, rgba(50, 25, 12, 0.98) 0%, rgba(30, 15, 8, 1) 100%);
         }
 
@@ -188,6 +196,103 @@
         #rules-dropdown::-webkit-scrollbar-thumb {
             background: rgba(139, 90, 43, 0.5);
             border-radius: 4px;
+        }
+
+        /* Leaderboard dropdown - same styling as rules */
+        #leaderboard-dropdown {
+            display: none;
+            position: absolute;
+            top: 50px;
+            left: 0;
+            background: linear-gradient(135deg, rgba(40, 20, 10, 0.98) 0%, rgba(20, 10, 5, 0.99) 100%);
+            border: 2px solid rgba(139, 90, 43, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            color: #fff;
+        }
+
+        #leaderboard-dropdown.show {
+            display: block;
+        }
+
+        #leaderboard-dropdown h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(139, 90, 43, 0.5);
+            padding-bottom: 10px;
+            text-align: center;
+        }
+
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            border-left: 3px solid #ffd700;
+        }
+
+        .leaderboard-entry:nth-child(2) {
+            border-left-color: #ffd700;
+        }
+
+        .leaderboard-entry:nth-child(3) {
+            border-left-color: #c0c0c0;
+        }
+
+        .leaderboard-entry:nth-child(4) {
+            border-left-color: #cd7f32;
+        }
+
+        .leaderboard-rank {
+            font-weight: bold;
+            margin-right: 10px;
+            min-width: 30px;
+        }
+
+        .leaderboard-name {
+            flex: 1;
+        }
+
+        .leaderboard-wins {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        #leaderboard-dropdown::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #leaderboard-dropdown::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        #leaderboard-dropdown::-webkit-scrollbar-thumb {
+            background: rgba(139, 90, 43, 0.5);
+            border-radius: 4px;
+        }
+
+        .clear-leaderboard {
+            margin-top: 15px;
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 68, 68, 0.8);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .clear-leaderboard:hover {
+            background: rgba(255, 68, 68, 1);
         }
 
         /* Lobby screen */
@@ -998,6 +1103,18 @@
                     <li><strong>Lying (if enabled):</strong> Play cards face-down and declare any rank. Others can call your lie!</li>
                     <li><strong>Final cards:</strong> When hand and face-up are gone, play face-down cards blind</li>
                 </ul>
+            </div>
+        </div>
+
+        <!-- Leaderboard Dropdown -->
+        <div id="leaderboard-container">
+            <button id="leaderboard-button" onclick="toggleLeaderboard()">🏆 Leaderboard</button>
+            <div id="leaderboard-dropdown">
+                <h3>🏆 Hall of Fame</h3>
+                <div id="leaderboard-list">
+                    <p style="text-align: center; opacity: 0.6;">No games played yet</p>
+                </div>
+                <button class="clear-leaderboard" onclick="clearLeaderboard()">Clear Leaderboard</button>
             </div>
         </div>
 
@@ -1873,6 +1990,7 @@
             if (!player.hasCards()) {
                 showMessage(`🎉 ${player.name} wins!`);
                 game.winnerName = player.name;
+                updateLeaderboard(player.name); // Save win to leaderboard
                 showWinnerCelebration(player.name);
                 broadcastGameState();
                 updateDisplay();
@@ -2240,14 +2358,79 @@
         function toggleRules() {
             const dropdown = document.getElementById('rules-dropdown');
             dropdown.classList.toggle('show');
+            // Close leaderboard if open
+            document.getElementById('leaderboard-dropdown').classList.remove('show');
         }
 
-        // Close rules when clicking outside
+        // Toggle leaderboard dropdown
+        function toggleLeaderboard() {
+            const dropdown = document.getElementById('leaderboard-dropdown');
+            dropdown.classList.toggle('show');
+            // Close rules if open
+            document.getElementById('rules-dropdown').classList.remove('show');
+            // Display latest leaderboard
+            if (dropdown.classList.contains('show')) {
+                displayLeaderboard();
+            }
+        }
+
+        // Update leaderboard when someone wins
+        function updateLeaderboard(winnerName) {
+            const leaderboard = JSON.parse(localStorage.getItem('cardGameLeaderboard') || '{}');
+            leaderboard[winnerName] = (leaderboard[winnerName] || 0) + 1;
+            localStorage.setItem('cardGameLeaderboard', JSON.stringify(leaderboard));
+        }
+
+        // Display leaderboard
+        function displayLeaderboard() {
+            const leaderboard = JSON.parse(localStorage.getItem('cardGameLeaderboard') || '{}');
+            const leaderboardList = document.getElementById('leaderboard-list');
+
+            // Convert to array and sort by wins
+            const sortedLeaderboard = Object.entries(leaderboard)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10); // Top 10
+
+            if (sortedLeaderboard.length === 0) {
+                leaderboardList.innerHTML = '<p style="text-align: center; opacity: 0.6;">No games played yet</p>';
+                return;
+            }
+
+            let html = '';
+            sortedLeaderboard.forEach(([name, wins], index) => {
+                const rank = index + 1;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+                html += `
+                    <div class="leaderboard-entry">
+                        <span class="leaderboard-rank">${medal} #${rank}</span>
+                        <span class="leaderboard-name">${name}</span>
+                        <span class="leaderboard-wins">${wins} ${wins === 1 ? 'win' : 'wins'}</span>
+                    </div>
+                `;
+            });
+            leaderboardList.innerHTML = html;
+        }
+
+        // Clear leaderboard
+        function clearLeaderboard() {
+            if (confirm('Are you sure you want to clear the leaderboard? This cannot be undone.')) {
+                localStorage.removeItem('cardGameLeaderboard');
+                displayLeaderboard();
+            }
+        }
+
+        // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
             const rulesContainer = document.getElementById('rules-container');
-            const dropdown = document.getElementById('rules-dropdown');
+            const leaderboardContainer = document.getElementById('leaderboard-container');
+            const rulesDropdown = document.getElementById('rules-dropdown');
+            const leaderboardDropdown = document.getElementById('leaderboard-dropdown');
+
             if (rulesContainer && !rulesContainer.contains(e.target)) {
-                dropdown.classList.remove('show');
+                rulesDropdown.classList.remove('show');
+            }
+            if (leaderboardContainer && !leaderboardContainer.contains(e.target)) {
+                leaderboardDropdown.classList.remove('show');
             }
         });
     </script>

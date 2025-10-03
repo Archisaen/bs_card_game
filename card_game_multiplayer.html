@@ -116,14 +116,20 @@
             z-index: 5;
             pointer-events: none;
             animation: walkAcross 20s linear infinite;
-            opacity: 0.8;
-            height: 120px;
+            font-size: 80px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
         }
 
-        .waitress img {
-            height: 100%;
-            width: auto;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+        .waitress .person {
+            font-size: 80px;
+        }
+
+        .waitress .tray {
+            font-size: 60px;
+            margin-bottom: 20px;
         }
 
         @keyframes walkAcross {
@@ -1094,7 +1100,8 @@
 <body>
     <!-- Animated waitress -->
     <div class="waitress">
-        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ana&backgroundColor=transparent&clothing=graphicShirt&clothingGraphic=bear&eyebrows=default&eyes=happy&mouth=smile&top=longHairStraight" alt="Waitress">
+        <span class="person">🚶‍♀️</span>
+        <span class="tray">🍺🍻</span>
     </div>
 
     <div id="game-container">

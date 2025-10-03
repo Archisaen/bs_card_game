@@ -854,7 +854,8 @@
             canCallLie: false,
             faceDownIndices: [],
             declaredRanks: {}, // Maps pile index to declared rank
-            winnerName: null
+            winnerName: null,
+            lastPlayedCardDisplay: null // Display text for last card played (actual or declared)
         };
 
         // Card class
@@ -1359,9 +1360,10 @@
             playBtn.disabled = !canPlay;
             pickupBtn.disabled = game.currentPlayerIdx !== myPlayerIndex || game.waitingForTarget || game.pile.length === 0;
 
-            // Show/hide face down button - only for hand and face-up cards, NOT for final face-down cards
+            // Show/hide face down button - only for hand and face-up cards, NOT for final face-down cards or 10s
             const isPlayingFromFaceDown = game.selectedCards.some(c => c.location === 'faceDown');
-            if (game.allowLying && canPlay && !isPlayingFromFaceDown) {
+            const hasAnyTen = game.selectedCards.some(c => c.card.rank === Rank.TEN);
+            if (game.allowLying && canPlay && !isPlayingFromFaceDown && !hasAnyTen) {
                 playFaceDownBtn.style.display = 'block';
                 playFaceDownBtn.disabled = false;
             } else {
@@ -1456,6 +1458,7 @@
                     game.pile = [];
                     game.faceDownIndices = [];
                     game.declaredRanks = {};
+                    game.lastPlayedCardDisplay = null;
                     game.aceAttackTarget = null;
                     game.mirroredRank = null;
                     game.selectedCards = [];
@@ -1506,6 +1509,14 @@
 
             // Use declared rank if playing face-down, otherwise use actual rank
             const playedRank = (playFaceDown && declaredRank) ? declaredRank : cards[0].rank;
+
+            // Track last played card display
+            if (playFaceDown && declaredRank) {
+                const rankName = RANK_NAMES[declaredRank];
+                game.lastPlayedCardDisplay = `${rankName}${cards.length > 1 ? 's' : ''} (face down)`;
+            } else {
+                game.lastPlayedCardDisplay = cards.map(c => c.toString()).join(', ');
+            }
 
             // Track last played cards for lying mechanic
             if (game.allowLying) {
@@ -1598,6 +1609,7 @@
                         game.pile = [];
                         game.faceDownIndices = [];
                         game.declaredRanks = {};
+                        game.lastPlayedCardDisplay = null;
                         game.aceAttackTarget = null;
                         game.mirroredRank = null;
                         drawCards(player);
@@ -1620,6 +1632,7 @@
                 game.pile = [];
                 game.faceDownIndices = [];
                 game.declaredRanks = {};
+                game.lastPlayedCardDisplay = null;
                 game.aceAttackTarget = null;
                 game.mirroredRank = null;
                 drawCards(player);
@@ -1702,7 +1715,10 @@
 
             game.currentPlayerIdx = game.currentPlayerIdx % game.players.length;
 
-            showMessage(`${game.players[game.currentPlayerIdx].name}'s turn`);
+            const turnMessage = game.lastPlayedCardDisplay
+                ? `${game.players[game.currentPlayerIdx].name}'s turn (Last: ${game.lastPlayedCardDisplay})`
+                : `${game.players[game.currentPlayerIdx].name}'s turn`;
+            showMessage(turnMessage);
 
             // Show popup if it's my turn
             if (game.currentPlayerIdx === myPlayerIndex) {
@@ -1722,6 +1738,7 @@
             game.pile = [];
             game.faceDownIndices = [];
             game.declaredRanks = {};
+            game.lastPlayedCardDisplay = null;
             game.aceAttackTarget = null;
             game.mirroredRank = null;
             game.selectedCards = [];
@@ -1753,6 +1770,7 @@
                 game.pile = [];
                 game.faceDownIndices = [];
                 game.declaredRanks = {};
+                game.lastPlayedCardDisplay = null;
                 game.mirroredRank = null;
                 game.currentPlayerIdx = game.lastPlayerIdx;
             } else {
@@ -1761,6 +1779,7 @@
                 game.pile = [];
                 game.faceDownIndices = [];
                 game.declaredRanks = {};
+                game.lastPlayedCardDisplay = null;
                 game.mirroredRank = null;
             }
 

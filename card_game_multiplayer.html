@@ -28,16 +28,19 @@
             position: relative;
         }
 
-        /* Bar ambient light overlay */
+        /* Bar ambient light overlay - multiple hanging lights */
         body::before {
             content: '';
             position: fixed;
-            top: -50%;
+            top: -30%;
             left: 50%;
             transform: translateX(-50%);
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(ellipse at top, rgba(255,215,0,0.15) 0%, transparent 50%);
+            width: 100%;
+            height: 150%;
+            background:
+                radial-gradient(ellipse 400px 300px at 30% 0%, rgba(255,215,0,0.2) 0%, transparent 40%),
+                radial-gradient(ellipse 400px 300px at 70% 0%, rgba(255,215,0,0.2) 0%, transparent 40%),
+                radial-gradient(ellipse 600px 400px at 50% 0%, rgba(255,215,0,0.15) 0%, transparent 50%);
             pointer-events: none;
             z-index: 0;
         }
@@ -61,6 +64,130 @@
             height: 95vh;
             position: relative;
             z-index: 1;
+        }
+
+        /* Bar shelves decoration */
+        #game-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background:
+                linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 100%),
+                repeating-linear-gradient(90deg,
+                    transparent 0px,
+                    transparent 40px,
+                    rgba(139, 90, 43, 0.3) 40px,
+                    rgba(139, 90, 43, 0.3) 50px,
+                    transparent 50px,
+                    transparent 100px
+                );
+            border-bottom: 3px solid rgba(139, 90, 43, 0.4);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Bar bottles decoration */
+        #game-container::after {
+            content: '🍺 🍷 🥃 🍾 🍸';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 32px;
+            opacity: 0.3;
+            pointer-events: none;
+            letter-spacing: 40px;
+            z-index: 0;
+        }
+
+        /* Neon sign effect */
+        #messages {
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Rules dropdown */
+        #rules-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 600;
+        }
+
+        #rules-button {
+            background: linear-gradient(135deg, rgba(40, 20, 10, 0.95) 0%, rgba(20, 10, 5, 0.98) 100%);
+            border: 2px solid rgba(139, 90, 43, 0.4);
+            color: #ffd700;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        #rules-button:hover {
+            background: linear-gradient(135deg, rgba(50, 25, 12, 0.98) 0%, rgba(30, 15, 8, 1) 100%);
+        }
+
+        #rules-dropdown {
+            display: none;
+            position: absolute;
+            top: 50px;
+            left: 0;
+            background: linear-gradient(135deg, rgba(40, 20, 10, 0.98) 0%, rgba(20, 10, 5, 0.99) 100%);
+            border: 2px solid rgba(139, 90, 43, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            color: #fff;
+        }
+
+        #rules-dropdown.show {
+            display: block;
+        }
+
+        #rules-dropdown h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(139, 90, 43, 0.5);
+            padding-bottom: 10px;
+        }
+
+        #rules-dropdown ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        #rules-dropdown li {
+            margin: 10px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        #rules-dropdown li::before {
+            content: '🃏';
+            position: absolute;
+            left: 0;
+        }
+
+        #rules-dropdown::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #rules-dropdown::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        #rules-dropdown::-webkit-scrollbar-thumb {
+            background: rgba(139, 90, 43, 0.5);
+            border-radius: 4px;
         }
 
         /* Lobby screen */
@@ -160,15 +287,17 @@
                 #0d5c0d;
             background-size: 100% 100%, 4px 4px, 4px 4px, 100% 100%;
             background-position: 0 0, 0 0, 2px 2px, 0 0;
-            padding: 40px;
+            padding: 70px 90px;
             border-radius: 50%;
             box-shadow:
-                inset 0 0 60px rgba(0,0,0,0.5),
-                0 10px 30px rgba(0,0,0,0.5);
+                inset 0 0 80px rgba(0,0,0,0.6),
+                0 15px 40px rgba(0,0,0,0.6),
+                0 0 0 8px rgba(139, 90, 43, 0.3);
             display: flex;
-            gap: 40px;
+            gap: 60px;
             align-items: center;
             z-index: 50;
+            min-width: 500px;
         }
 
         #deck-container {
@@ -847,6 +976,28 @@
 
         <div id="turn-popup">
             IT'S YOUR TURN ASSHOLE!
+        </div>
+
+        <!-- Rules Dropdown -->
+        <div id="rules-container">
+            <button id="rules-button" onclick="toggleRules()">📜 Rules</button>
+            <div id="rules-dropdown">
+                <h3>Game Rules</h3>
+                <ul>
+                    <li><strong>Setup:</strong> Each player gets 2 face-down cards, 2 face-up cards on top, and 2 cards in hand</li>
+                    <li><strong>Goal:</strong> Be the first to get rid of all your cards</li>
+                    <li><strong>Playing:</strong> Play cards equal or higher than the pile. Maintain 2 cards in hand while deck has cards</li>
+                    <li><strong>2:</strong> Reset card - can be played on anything, next card can be anything</li>
+                    <li><strong>3:</strong> Mirror card - copies the effect of the card below it</li>
+                    <li><strong>7:</strong> Low card - next card must be 7 or lower (unless special)</li>
+                    <li><strong>8:</strong> Skip - next player(s) skip their turn</li>
+                    <li><strong>10:</strong> Burn - clears the pile, play again</li>
+                    <li><strong>Ace:</strong> Choose a player to attack - they must play 2, 3, 10, or Ace</li>
+                    <li><strong>4 of a kind:</strong> Burn the pile automatically</li>
+                    <li><strong>Lying (if enabled):</strong> Play cards face-down and declare any rank. Others can call your lie!</li>
+                    <li><strong>Final cards:</strong> When hand and face-up are gone, play face-down cards blind</li>
+                </ul>
+            </div>
         </div>
 
         <!-- Game Table -->
@@ -2081,6 +2232,21 @@
         setTimeout(() => {
             loadPlayerPositions();
         }, 100);
+
+        // Toggle rules dropdown
+        function toggleRules() {
+            const dropdown = document.getElementById('rules-dropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close rules when clicking outside
+        document.addEventListener('click', (e) => {
+            const rulesContainer = document.getElementById('rules-container');
+            const dropdown = document.getElementById('rules-dropdown');
+            if (rulesContainer && !rulesContainer.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
     </script>
 </body>
 </html>

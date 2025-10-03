@@ -861,6 +861,33 @@
             75% { transform: translate(-50%, -50%) rotate(3deg); }
         }
 
+        #loser-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(139, 69, 19, 0.95);
+            padding: 40px 60px;
+            border-radius: 20px;
+            border: 4px solid #8B4513;
+            font-size: 36px;
+            font-weight: bold;
+            color: #FFD700;
+            text-align: center;
+            z-index: 9999;
+            display: none;
+            box-shadow: 0 0 50px rgba(139, 69, 19, 0.8);
+            animation: wobble 0.5s infinite;
+            pointer-events: none;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+        }
+
+        @keyframes wobble {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+            25% { transform: translate(-50%, -50%) rotate(-2deg) scale(0.98); }
+            75% { transform: translate(-50%, -50%) rotate(2deg) scale(1.02); }
+        }
+
         @media (max-width: 768px) {
             #game-container {
                 width: 100vw;
@@ -1119,6 +1146,10 @@
 
         <div id="turn-popup">
             IT'S YOUR TURN ASSHOLE!
+        </div>
+
+        <div id="loser-popup">
+            YOU SUCK LOSER! 💩
         </div>
 
         <!-- Rules Dropdown -->
@@ -2140,6 +2171,10 @@
             const player = game.players[myPlayerIndex];
             player.hand.push(...game.pile);
             showMessage(`${player.name} picks up ${game.pile.length} cards`);
+
+            // Show loser popup with sad trumpet
+            showLoserPopup();
+
             game.pile = [];
             game.faceDownIndices = [];
             game.declaredRanks = {};
@@ -2262,6 +2297,53 @@
             setTimeout(() => {
                 popup.style.display = 'none';
             }, 2500);
+        }
+
+        function showLoserPopup() {
+            const popup = document.getElementById('loser-popup');
+            popup.style.display = 'block';
+
+            // Play sad trumpet sound (wah wah waaah)
+            try {
+                const ctx = getAudioContext();
+
+                // Sad trombone descending notes
+                const notes = [
+                    { freq: 392, start: 0, duration: 0.3 },      // G
+                    { freq: 349.23, start: 0.3, duration: 0.3 }, // F
+                    { freq: 293.66, start: 0.6, duration: 0.5 }  // D (longer)
+                ];
+
+                notes.forEach(note => {
+                    const oscillator = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+
+                    // Square wave for trumpet-like sound
+                    oscillator.type = 'square';
+                    oscillator.frequency.value = note.freq;
+
+                    // Volume envelope
+                    const now = ctx.currentTime + note.start;
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05);
+                    gainNode.gain.linearRampToValueAtTime(0.15, now + note.duration - 0.05);
+                    gainNode.gain.linearRampToValueAtTime(0, now + note.duration);
+
+                    oscillator.start(now);
+                    oscillator.stop(now + note.duration);
+                });
+
+                console.log('Sad trumpet sound playing');
+            } catch(e) {
+                console.log('Audio creation failed:', e);
+            }
+
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 2000);
         }
 
         function showWinnerCelebration(winnerName) {

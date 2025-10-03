@@ -109,115 +109,36 @@
             text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
 
-        /* Animated waitress */
+        /* Animated beer emojis */
         .waitress {
             position: fixed;
-            bottom: 15%;
+            bottom: 20%;
             z-index: 5;
             pointer-events: none;
-            animation: walkAcross 20s linear infinite;
-            width: 100px;
-            height: 120px;
-        }
-
-        /* Waitress figure made with CSS */
-        .waitress-figure {
-            position: relative;
-            width: 100%;
-            height: 100%;
+            animation: walkAcross 15s linear infinite;
+            font-size: 60px;
             filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
         }
 
-        /* Head */
-        .w-head {
-            position: absolute;
-            top: 10px;
-            left: 35px;
-            width: 30px;
-            height: 30px;
-            background: #f4c2a7;
-            border-radius: 50%;
-            border: 2px solid #d19b7d;
-        }
-
-        /* Hair */
-        .w-hair {
-            position: absolute;
-            top: 5px;
-            left: 30px;
-            width: 40px;
-            height: 25px;
-            background: #4a2511;
-            border-radius: 50% 50% 0 0;
-        }
-
-        /* Body/Dress */
-        .w-body {
-            position: absolute;
-            top: 45px;
-            left: 25px;
-            width: 50px;
-            height: 60px;
-            background: #333;
-            border-radius: 0 0 25px 25px;
-        }
-
-        /* White apron */
-        .w-apron {
-            position: absolute;
-            top: 50px;
-            left: 30px;
-            width: 40px;
-            height: 50px;
-            background: white;
-            border-radius: 0 0 20px 20px;
-            opacity: 0.9;
-        }
-
-        /* Tray */
-        .w-tray {
-            position: absolute;
-            top: 50px;
-            left: 15px;
-            width: 70px;
-            height: 5px;
-            background: #8B4513;
-            border-radius: 2px;
-        }
-
-        /* Beer mugs */
-        .w-beer {
-            position: absolute;
-            top: -15px;
-            width: 18px;
-            height: 20px;
-            background: linear-gradient(180deg, #FFF8DC 0%, #FFF8DC 20%, #FFA500 20%, #FFA500 100%);
-            border: 2px solid #FF8C00;
-            border-radius: 3px;
-        }
-
-        .w-beer.left { left: 10px; }
-        .w-beer.right { right: 10px; }
-
         @keyframes walkAcross {
             0% {
-                left: -150px;
+                left: -100px;
                 transform: scaleX(1);
             }
-            48% {
-                left: 50%;
+            49% {
+                left: 100%;
                 transform: scaleX(1);
             }
             50% {
-                left: 50%;
+                left: 100%;
                 transform: scaleX(-1);
             }
-            98% {
-                left: -150px;
+            99% {
+                left: -100px;
                 transform: scaleX(-1);
             }
             100% {
-                left: -150px;
+                left: -100px;
                 transform: scaleX(1);
             }
         }
@@ -1165,19 +1086,8 @@
     </style>
 </head>
 <body>
-    <!-- Animated waitress -->
-    <div class="waitress">
-        <div class="waitress-figure">
-            <div class="w-hair"></div>
-            <div class="w-head"></div>
-            <div class="w-body"></div>
-            <div class="w-apron"></div>
-            <div class="w-tray">
-                <div class="w-beer left"></div>
-                <div class="w-beer right"></div>
-            </div>
-        </div>
-    </div>
+    <!-- Animated beer emojis -->
+    <div class="waitress">🍺🍻</div>
 
     <div id="game-container">
         <!-- Lobby Screen -->

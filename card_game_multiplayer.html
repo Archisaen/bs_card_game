@@ -1201,16 +1201,12 @@
                     const isFaceDown = game.faceDownIndices.includes(i);
                     const cardEl = createCardElement(card, null, isFaceDown);
 
-                    // Position card element directly
-                    cardEl.style.position = 'absolute';
-
                     // If face-down with a declared rank, show the declared rank
                     if (isFaceDown && game.declaredRanks[i]) {
                         const rankLabel = document.createElement('div');
                         rankLabel.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; font-weight: bold; color: gold; text-shadow: 3px 3px 8px black, -2px -2px 4px black, 2px -2px 4px black, -2px 2px 4px black; pointer-events: none; z-index: 1;';
                         rankLabel.textContent = RANK_NAMES[game.declaredRanks[i]];
                         cardEl.appendChild(rankLabel);
-                        cardEl.style.position = 'relative';
                     }
 
                     const offset = (i - startIdx) * 3;

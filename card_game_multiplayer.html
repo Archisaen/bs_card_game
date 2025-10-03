@@ -789,6 +789,7 @@
         <!-- Game Table -->
         <div id="game-table">
             <div id="messages"></div>
+            <div id="last-played" style="text-align: center; color: #ffd700; font-size: 14px; margin-top: 5px; min-height: 20px;"></div>
 
             <div id="center-area">
                 <div id="deck-container">
@@ -1164,6 +1165,16 @@
                 showMessage(isMyTurn ? "Your turn!" : `${currentPlayer.name}'s turn`);
             }
 
+            // Update last played card display
+            const lastPlayedEl = document.getElementById('last-played');
+            if (lastPlayedEl) {
+                if (game.lastPlayedCardDisplay) {
+                    lastPlayedEl.textContent = `Last played: ${game.lastPlayedCardDisplay}`;
+                } else {
+                    lastPlayedEl.textContent = '';
+                }
+            }
+
             // Update deck visual
             const deckVisual = document.getElementById('deck-visual');
             deckVisual.innerHTML = '';
@@ -1190,25 +1201,22 @@
                     const isFaceDown = game.faceDownIndices.includes(i);
                     const cardEl = createCardElement(card, null, isFaceDown);
 
-                    // Wrapper for positioning
-                    const wrapper = document.createElement('div');
-                    wrapper.style.cssText = 'position: absolute; display: inline-block; width: 80px; height: 112px;';
+                    // Position card element directly
+                    cardEl.style.position = 'absolute';
 
                     // If face-down with a declared rank, show the declared rank
                     if (isFaceDown && game.declaredRanks[i]) {
                         const rankLabel = document.createElement('div');
-                        rankLabel.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; font-weight: bold; color: gold; text-shadow: 3px 3px 8px black, -2px -2px 4px black, 2px -2px 4px black, -2px 2px 4px black; pointer-events: none; z-index: 10;';
+                        rankLabel.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; font-weight: bold; color: gold; text-shadow: 3px 3px 8px black, -2px -2px 4px black, 2px -2px 4px black, -2px 2px 4px black; pointer-events: none; z-index: 1;';
                         rankLabel.textContent = RANK_NAMES[game.declaredRanks[i]];
-                        wrapper.appendChild(rankLabel);
+                        cardEl.appendChild(rankLabel);
+                        cardEl.style.position = 'relative';
                     }
 
-                    wrapper.appendChild(cardEl);
-
                     const offset = (i - startIdx) * 3;
-                    wrapper.style.left = offset + 'px';
-                    wrapper.style.top = offset + 'px';
-                    wrapper.style.zIndex = i;
-                    pileEl.appendChild(wrapper);
+                    cardEl.style.transform = `translate(${offset}px, ${offset}px)`;
+                    cardEl.style.zIndex = i;
+                    pileEl.appendChild(cardEl);
                 }
             }
             document.getElementById('pile-info').textContent = `Pile: ${game.pile.length} cards`;
@@ -1715,10 +1723,15 @@
 
             game.currentPlayerIdx = game.currentPlayerIdx % game.players.length;
 
-            const turnMessage = game.lastPlayedCardDisplay
-                ? `${game.players[game.currentPlayerIdx].name}'s turn (Last: ${game.lastPlayedCardDisplay})`
-                : `${game.players[game.currentPlayerIdx].name}'s turn`;
-            showMessage(turnMessage);
+            showMessage(`${game.players[game.currentPlayerIdx].name}'s turn`);
+
+            // Update last played card display
+            const lastPlayedEl = document.getElementById('last-played');
+            if (game.lastPlayedCardDisplay) {
+                lastPlayedEl.textContent = `Last played: ${game.lastPlayedCardDisplay}`;
+            } else {
+                lastPlayedEl.textContent = '';
+            }
 
             // Show popup if it's my turn
             if (game.currentPlayerIdx === myPlayerIndex) {

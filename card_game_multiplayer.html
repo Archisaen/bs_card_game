@@ -109,6 +109,40 @@
             text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
 
+        /* Animated waitress */
+        .waitress {
+            position: fixed;
+            bottom: 15%;
+            font-size: 48px;
+            z-index: 5;
+            pointer-events: none;
+            animation: walkAcross 20s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes walkAcross {
+            0% {
+                left: -80px;
+                transform: scaleX(1);
+            }
+            48% {
+                left: 50%;
+                transform: scaleX(1);
+            }
+            50% {
+                left: 50%;
+                transform: scaleX(-1);
+            }
+            98% {
+                left: -80px;
+                transform: scaleX(-1);
+            }
+            100% {
+                left: -80px;
+                transform: scaleX(1);
+            }
+        }
+
         /* Rules dropdown */
         #rules-container {
             position: fixed;
@@ -1023,6 +1057,9 @@
     </style>
 </head>
 <body>
+    <!-- Animated waitress -->
+    <div class="waitress">💃🍺</div>
+
     <div id="game-container">
         <!-- Lobby Screen -->
         <div id="lobby-screen">
@@ -1161,6 +1198,19 @@
         };
 
         const SUITS = ['♠', '♥', '♦', '♣'];
+
+        // Audio context for turn notifications (reuse to ensure sounds work every time)
+        let audioContext = null;
+        function getAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            // Resume context if suspended (required by some browsers)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            return audioContext;
+        }
 
         // Multiplayer state
         let myPlayerId = null;
@@ -1738,12 +1788,14 @@
             const topCard = game.pile[game.pile.length - 1];
             const topCardIndex = game.pile.length - 1;
 
-            // Use declared rank if card was played face-down, otherwise use actual rank
+            // Check ACTUAL card rank first - if it's a 3 with mirrored rank, use that
+            // regardless of what was declared
             let topRank = topCard.rank;
-            if (game.declaredRanks[topCardIndex]) {
-                topRank = game.declaredRanks[topCardIndex];
-            } else if (topCard.rank === Rank.THREE && game.mirroredRank) {
+            if (topCard.rank === Rank.THREE && game.mirroredRank) {
                 topRank = game.mirroredRank;
+            } else if (game.declaredRanks[topCardIndex]) {
+                // Use declared rank if card was played face-down (and it's not a 3)
+                topRank = game.declaredRanks[topCardIndex];
             }
 
             // 7 rule: must play 7 or lower (2, 3, and Ace are still special)
@@ -2174,25 +2226,25 @@
 
             // Play longer notification sound using Web Audio API
             try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const ctx = getAudioContext();
 
                 // Create a series of beeps for attention
                 const beepTimes = [0, 0.2, 0.4, 0.6]; // 4 beeps
                 const beepDuration = 0.15;
 
                 beepTimes.forEach(startTime => {
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
+                    const oscillator = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
 
                     oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
+                    gainNode.connect(ctx.destination);
 
                     // Frequency: 800Hz for a noticeable beep
                     oscillator.frequency.value = 800;
                     oscillator.type = 'sine';
 
                     // Volume envelope for smooth beep
-                    const now = audioContext.currentTime + startTime;
+                    const now = ctx.currentTime + startTime;
                     gainNode.gain.setValueAtTime(0, now);
                     gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01);
                     gainNode.gain.linearRampToValueAtTime(0.3, now + beepDuration - 0.01);
